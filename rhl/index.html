@@ -36,6 +36,47 @@ header{background:var(--charcoal);color:var(--white);padding:22px 0 18px;}
 .admin-trigger{background:none;border:none;color:rgba(255,255,255,.15);cursor:pointer;font-size:14px;padding:2px 3px;line-height:1;transition:color .2s;margin-top:2px;}
 .admin-trigger:hover{color:rgba(255,255,255,.5);}
 
+/* PALANCAS */
+.palancas{background:var(--white);border:1px solid var(--border);border-left:3px solid var(--brass);
+  border-radius:var(--radius);padding:16px 20px;margin:20px 0 4px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:26px;}
+.pal-grp{display:flex;align-items:center;gap:10px;}
+.pal-lbl{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+.pal-seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.pal-seg button{background:var(--white);border:none;padding:6px 13px;font-size:12px;font-weight:600;
+  font-family:'DM Sans',sans-serif;color:var(--muted);cursor:pointer;transition:all .14s;white-space:nowrap;}
+.pal-seg button + button{border-left:1px solid var(--border);}
+.pal-seg button.on{background:var(--olive);color:var(--white);}
+.pal-seg button:not(.on):hover{background:var(--light);color:var(--charcoal);}
+.pal-monto{width:118px;border:1px solid var(--border);border-radius:8px;padding:6px 10px;
+  font-size:12px;font-family:'DM Sans',sans-serif;text-align:right;color:var(--charcoal);}
+.pal-monto:focus{outline:none;border-color:var(--brass);}
+.pal-sep{width:1px;align-self:stretch;background:var(--border);}
+.pal-aviso{display:none;width:100%;font-size:12px;color:var(--brass-dark);font-weight:600;
+  padding-top:12px;border-top:1px dashed var(--border);align-items:center;gap:10px;}
+.pal-aviso.on{display:flex;}
+.pal-aviso button{background:var(--brass);color:#fff;border:none;border-radius:6px;
+  padding:4px 11px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.pal-guardar{background:var(--olive);color:#fff;border:none;border-radius:7px;padding:6px 14px;
+  font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.pal-guardar:hover{background:var(--green);}
+
+/* SELLO DE CRITERIO EN HEADER */
+.sello{font-size:11px;color:var(--sage);letter-spacing:.02em;}
+.sello b{color:var(--white);font-weight:600;}
+
+/* PROVISION — se ve distinta porque no es cifra cerrada */
+tr.provision td{font-style:italic;color:var(--muted)!important;}
+.chip-est{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  background:rgba(176,141,87,.15);color:var(--brass-dark);padding:1px 7px;border-radius:9px;margin-left:8px;
+  font-style:normal;vertical-align:middle;}
+
+/* VALIDACION CONSOLIDADO */
+.valida{display:none;align-items:center;gap:9px;background:rgba(154,59,59,.08);
+  border:1px solid rgba(154,59,59,.35);border-radius:9px;padding:10px 15px;margin:12px 0 0;
+  font-size:12.5px;color:var(--error);font-weight:600;}
+.valida.on{display:flex;}
+
 /* CORTE PICKER */
 .corte-picker{display:flex;align-items:center;gap:7px;}
 .corte-picker label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--sage);}
@@ -247,7 +288,8 @@ table.data.hide-col-6 tr>:nth-child(8){display:none;}
       <input type="date" id="corte-input" onchange="onCorteChange()">
       <button class="corte-reset" id="corte-reset" onclick="resetCorte()" title="Volver al corte vigente" style="display:none">&#8634;</button>
     </div>
-    <span class="ver-label" id="ver-indicator">v5 RHL multipagina</span>
+    <span class="sello" id="sello-criterio"></span>
+    <span class="ver-label" id="ver-indicator">Ago 2026 (parcial)</span>
     <span class="ver-live" id="ver-live">datos en vivo</span>
     <button class="admin-trigger" onclick="openAdmin()" title="Administracion">&#9881;</button>
   </div>
@@ -256,6 +298,32 @@ table.data.hide-col-6 tr>:nth-child(8){display:none;}
 
 <div class="wrap">
   <div class="corte-banner" id="corte-banner"></div>
+  <div class="palancas" id="palancas">
+    <div class="pal-grp">
+      <span class="pal-lbl">Tierra</span>
+      <span class="pal-seg">
+        <button id="pal-t-cap" onclick="setTierra('capital')">Capital aportado</button>
+        <button id="pal-t-gas" onclick="setTierra('gasto')">Gasto operativo</button>
+      </span>
+    </div>
+    <div class="pal-sep"></div>
+    <div class="pal-grp">
+      <span class="pal-lbl">Contratos por cerrar</span>
+      <input class="pal-monto" id="pal-monto" type="text" onchange="setProvMonto(this.value)">
+      <span class="pal-seg">
+        <button id="pal-f-e1"   onclick="setProvFase('e1')">Etapa 1</button>
+        <button id="pal-f-e2"   onclick="setProvFase('e2')">Etapa 2</button>
+        <button id="pal-f-none" onclick="setProvFase('none')">Sin asignar</button>
+      </span>
+    </div>
+    <div class="pal-sep"></div>
+    <button class="pal-guardar" id="pal-guardar" onclick="guardarPalancas()" style="display:none">Guardar como default</button>
+    <div class="pal-aviso" id="pal-aviso">
+      <span id="pal-aviso-txt"></span>
+      <button onclick="resetPalancas()">Volver al default</button>
+    </div>
+  </div>
+  <div class="valida" id="valida-cons"></div>
   <div class="tabs" id="pagenav">
     <button class="tab active" data-tab="e1">Etapa 1</button>
     <button class="tab" data-tab="e2">Etapa 2</button>
@@ -284,7 +352,7 @@ table.data.hide-col-6 tr>:nth-child(8){display:none;}
 const SUPA_URL = 'https://ifmnpzxkictbwgcznxex.supabase.co';
 const SUPA_KEY = 'sb_publishable_mP3VAPMRuFqJPz4pwE0G0Q_BfuSBF23';
 const DASHBOARD_ID = 'rhl';
-const EMBEDDED_DATA = {"e1": {"scenarios": ["Base Mar 2025", "Nov 2025", "Ene 2026", "Feb 2026", "Mar 2026", "Jun 2026", "Jul 2026"], "data": {"ingresos": [1145000532.0, 1189586152.48558, 1191297928.60747, 1191378034.1399999, 1192482785.3019047, 1194996106.3899999, 1200136370.6399999], "costoObra": [614876152.1899999, 628319372.4800001, 675954385.1299999, 680000000.0, 680000000.0, 697005295.3076155, 710662081.53], "gestionLicencias": [70000000.0, 70000000.0, 70000000.0, 70720000.0, 48494815.86819335, 49738156.17819335, 49738156.17819335], "contratistaGeneral": [61487615.219, 62831937.24800002, 67595438.513, 68000000.0, 85996005.87120003, 88632850.25568339, 88148493.50086394], "indirectoCorp": [23199000.0, 23199000.0, 23199000.0, 25160000.0, 26625229.79, 26625229.79, 26625229.79], "gastosOpObra": [15332976.966566661, 15332976.966566661, 15332976.966566661, 26078118.405039996, 15332976.966566661, 15428959.931739075, 15428959.931739075], "proyectoEjecutivo": [7600000.0, 7600000.0, 7600000.0, 16000000.0, 7600000.0, 7600000.0, 7600000.0], "activosFijos": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "legal": [0.0, 0.0, 410610.1075921909, 410610.1075921909, 410610.1075921909, 410610.1075921909, 410610.1075921909], "sat": [0.0, 0.0, 5813565.542299353, 5589390.54229935, 5813565.542299353, 5813565.542299353, 5815198.542299353], "publicidad": [13282006.1712, 13799199.368832726, 13819055.971846651, 13819985.196023997, 13832800.309502093, 13861954.834123997, 13921581.899423998], "comisionComercializacion": [66410030.856, 68995996.84416363, 69095279.85923326, 71482682.04839998, 69164001.54751046, 69309774.17062, 69607909.49712], "interesesBX": [96000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0], "comisionAperturaBX": [6305000.000000001, 6305000.000000001, 6305000.000000001, 6500000.0, 6305000.000000001, 6305000.000000001, 6305000.000000001], "otrosGastosFin": [19777948.847179748, 19777948.847179748, 19777948.847179748, 19374290.355791748, 19777948.847179748, 19777948.847179748, 19777995.247179747], "costoTierra": [59560626.94958785, 59560626.94958785, 59560626.94958785, 0.0, 59560626.94958785, 59560626.94958785, 59560626.94958785], "adelantoEtapa2": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "equipamiento": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "utilidadNeta": [91169174.80046582, 109864093.78124917, 52834040.72016448, 84242957.48485261, 49569203.502272904, 30926134.4753654, 22534527.466000408], "margen": [0.07962369645472428, 0.09235488623643921, 0.04434998118558231, 0.07071051762815458, 0.0415680663178071, 0.02587969476217885, 0.01877663906976118], "inversionSocios": [59560626.94958785, 59560626.94958785, 59560626.94958785, 59560626.94958785, 59560626.94958785, 59560626.94958785, 59560626.94958785], "devolucion": [292725906.93625367, 313656860.35574865, 261424544.08210176, 225239624.44444048, 276583971.3562989, 260628013.13563666, 251854854.65645218], "negociacion": [8000000.0, 8000000.0, 8000000.0, 8000000.0, 8000000.0, 8000000.0, 8000000.0], "cargadores": [5000000.0, 5000000.0, 5000000.0, 5000000.0, 5000000.0, 5000000.0, 5000000.0], "elevadoresObra": [5102142.364800001, 5102142.364800001, 5102142.364800001, 5102142.364800001, 5102142.364800001, 5102142.364800001, 5102142.364800001], "multiplo": [4.914755299403027, 5.26617795043071, 4.389217465816329, 3.781686593646562, 4.643738414479749, 4.375844017831316, 4.228546063989929], "tir": [0.25511589190633005, 0.30742930749155867, 0.14784386774192074, 0.23573447146595658, 0.1387079743810966, 0.08653964892372411, 0.06305767366830452], "aniosProy": [6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0], "utilidadBruta": [530124379.81000006, 561266780.0055798, 515343543.47747016, 511378034.13999987, 512482785.3019047, 497990811.08238435, 489474289.1099999], "totalGastosOperativos": [177619592.18556663, 178963914.21456668, 189951591.12945822, 211958119.05493155, 190273204.14585158, 194249371.80550736, 193766648.0506879], "totalGastosComercializacion": [79692037.0272, 82795196.21299635, 82914335.83107992, 85302667.24442399, 82996801.85701256, 83171729.004744, 83529491.396544], "utilidadOperativa": [272812750.5972334, 299507669.57801676, 242477616.51693207, 214117247.84064436, 239212779.2990405, 220569710.272133, 212178149.662768], "totalGastosFinancieros": [122082948.84717974, 130082948.84717974, 130082948.84717974, 129874290.35579175, 130082948.84717974, 130082948.84717974, 130082995.24717975], "totalCostoTierra": [59560626.94958785, 59560626.94958785, 59560626.94958785, 0.0, 59560626.94958785, 59560626.94958785, 59560626.94958785], "devolucionFixos": [57608479.327199996, 57608479.32720001, 57608479.32720004, 49169106.27678788, 57608479.32720005, 57608479.32720001, 57608479.32719998]}}, "e2": {"scenarios": ["Base Mar 2025", "Nov 2025", "Ene 2026", "Mar 2026", "Jun 2026", "Jul 2026"], "data": {"ingresos": [1578028908.2, 1851418162.0, 1862165054.7506359, 1871609102.0, 1929385893.0, 1932146244.0], "costoObra": [661414279.2765551, 694362193.71, 694362193.71, 741402268.0, 741402268.0, 741402268.0], "gestionLicencias": [80000000.0, 118502310.57000001, 118502310.57000001, 118502310.57000001, 118502310.57000001, 118502310.57000001], "contratistaGeneral": [79044056.39608039, 82866014.47036, 82866014.47036, 92711207.01003999, 92711207.01003999, 92711207.01003999], "indirectoCorp": [23149499.77467943, 24302676.779850002, 24302676.779850002, 28242068.03, 26242068.03, 28242068.03], "gastosOpObra": [8598385.630595217, 16850744.402843226, 16850744.402843226, 17934956.43, 17934956.43, 17934956.43], "proyectoEjecutivo": [7000000.0, 10683741.38811724, 10683741.38811724, 10683741.38811724, 10683741.38811724, 10683741.38811724], "activosFijos": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "legal": [0.0, 0.0, 482273.1924078091, 482273.1924078091, 482273.1924078091, 482273.1924078091], "sat": [0.0, 0.0, 0.0, 6785074.45770065, 7623487.457700649, 7623487.457700649], "publicidad": [18305135.33512, 21476450.679199997, 21601114.635107376, 21710665.5832, 22380876.358799998, 22412896.4304], "comisionComercializacion": [91525676.6756, 107382253.396, 108005573.17553687, 108553327.916, 111904381.79399998, 112064482.152], "interesesBX": [110000000.0, 110000000.0, 110000000.0, 110000000.0, 110000000.0, 110000000.0], "comisionAperturaBX": [0.0, 0.0, 9860081.204, 9860081.204, 9860081.204, 9860081.204], "otrosGastosFin": [0.0, 0.0, 7320878.8204, 7320878.8204, 7320878.8204, 7320878.8204], "costoTierra": [69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214], "adelantoEtapa2": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "equipamiento": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "utilidadNeta": [429036233.08095783, 595036134.5732174, 587371810.3716011, 527464607.3677222, 582381720.7141223, 582949951.2845223], "margen": [0.2718810985347181, 0.3213947809231966, 0.31542413969864586, 0.2818241302652749, 0.3018482320343794, 0.3017110910184924], "inversionSocios": [69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214], "devolucion": [578035931.5074503, 747857791.0739896, 740193466.8723733, 690131456.4081743, 745048569.7545745, 745616800.3249745], "negociacion": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "cargadores": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "elevadoresObra": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "multiplo": [8.26289223757189, 10.690457114936777, 10.580897342784526, 9.865272283658697, 10.650299934788336, 10.658422661617902], "tir": [0.6814417133621156, 0.9451006973097079, 0.9329273892927914, 0.8377762950261398, 0.9250015895960993, 0.9259041147993846], "aniosProy": [9.0, 9.0, 9.0, 9.0, 9.0, 9.0], "utilidadBruta": [916614628.923445, 1157055968.29, 1167802861.0406358, 1130206834.0, 1187983625.0, 1190743976.0], "totalGastosOperativos": [197791941.801355, 253205487.6111705, 253687760.80357832, 275341631.0782657, 274180044.0782657, 276180044.0782657], "totalGastosComercializacion": [109830812.01072001, 128858704.07519999, 129606687.81064424, 130263993.49919999, 134285258.1528, 134477378.5824], "utilidadOperativa": [608991875.11137, 774991776.6036295, 784508412.4264132, 724601209.4225343, 779518322.7689344, 780086553.3393344], "totalGastosFinancieros": [110000000.0, 110000000.0, 127180960.0244, 127180960.0244, 127180960.0244, 127180960.0244], "totalCostoTierra": [69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214], "devolucionFixos": [-31560578.164000016, -37028363.2399999, -37243301.09501261, -37432182.04000006, -38587717.85999988, -38642924.87999988]}}, "cons": {"scenarios": ["Jun 2026", "Jul 2026"], "data": {"ingresos": [3124381999.39, 3132282614.64], "costoObra": [1438407563.3076155, 1452064349.53], "gestionLicencias": [168240466.74819335, 168240466.74819335], "contratistaGeneral": [181344057.26572338, 180859700.51090392], "indirectoCorp": [52867297.82, 54867297.82], "gastosOpObra": [33363916.361739077, 33363916.361739077], "proyectoEjecutivo": [18283741.38811724, 18283741.38811724], "activosFijos": [0.0, 0.0], "legal": [892883.3, 892883.3], "sat": [13437053.000000002, 13438686.000000002], "publicidad": [36242831.19292399, 36334478.329824], "comisionComercializacion": [181214155.96462, 181672391.64911997], "interesesBX": [214000000.0, 214000000.0], "comisionAperturaBX": [16165081.204, 16165081.204], "otrosGastosFin": [27098827.667579748, 27098874.067579746], "costoTierra": [129516268.97999999, 129516268.97999999], "adelantoEtapa2": [0.0, 0.0], "equipamiento": [0.0, 0.0], "utilidadNeta": [613307855.1894875, 605484478.7505225], "margen": [0.1962973334596182, 0.19330454918740217], "inversionSocios": [129516268.97999999, 129516268.97999999], "devolucion": [1005676582.8902112, 997471654.9814267], "negociacion": [8000000.0, 8000000.0], "cargadores": [5000000.0, 5000000.0], "elevadoresObra": [5102142.364800001, 5102142.364800001], "multiplo": [7.764866844994652, 7.701516287003736], "tir": [0.5261525658510086, 0.5194409453293573], "aniosProy": [9.0, 9.0], "utilidadBruta": [1685974436.0823843, 1680218265.11], "totalGastosOperativos": [468429415.8837731, 469946692.12895364], "totalGastosComercializacion": [217456987.157544, 218006869.97894397], "utilidadOperativa": [1000088033.0410672, 992264703.0021023], "totalGastosFinancieros": [257263908.87157974, 257263955.27157974], "totalCostoTierra": [129516268.97999999, 129516268.97999999], "devolucionFixos": [19020761.4672004, 18965554.447200306]}}, "logrado": {"e1": {"jun": null, "jul": {"logrado": {"ingresos": 1080957539.0, "costoObra": 662212244.39, "gestionLicencias": 49738156.17819335, "contratistaGeneral": 78932921.2164001, "indirectoCorp": 21924264.437155116, "gastosOpObra": 15428959.931739075, "proyectoEjecutivo": 7545754.365034394, "activosFijos": 5771353.5604, "legal": 410610.1075921909, "sat": 5815198.542299353, "publicidad": 18202145.0504463, "comisionComercializacion": 33443631.231835388, "interesesBX": 99828523.24, "comisionAperturaBX": 6305000.000000001, "otrosGastosFin": 19777995.247179747, "costoTierra": 59560626.94958785, "utilidadNeta": 0.0}, "porLograr": {"ingresos": 119178831.63999987, "costoObra": 48449837.139999986, "gestionLicencias": 0.0, "contratistaGeneral": 9215572.284463838, "indirectoCorp": 4700965.352844883, "gastosOpObra": 0.0, "proyectoEjecutivo": 54245.634965606034, "activosFijos": 0.0, "legal": 0.0, "sat": 0.0, "publicidad": -4280563.151022304, "comisionComercializacion": 36164278.265284605, "interesesBX": 4171476.7600000054, "comisionAperturaBX": 0.0, "otrosGastosFin": 0.0, "costoTierra": 0.0, "utilidadNeta": 0.0}}}, "e2": {"jun": null, "jul": {"logrado": {"ingresos": 421726324.36, "costoObra": 165800036.2762569, "gestionLicencias": 56206372.90113465, "contratistaGeneral": 5824798.93, "indirectoCorp": 21864407.08200329, "gastosOpObra": 3798352.3320333324, "proyectoEjecutivo": 10792832.837651815, "activosFijos": 0.0, "legal": 482273.1924078091, "sat": 7623487.457700649, "publicidad": 14823802.14943769, "comisionComercializacion": 17032974.94225252, "interesesBX": 9475047.11, "comisionAperturaBX": 9860081.204, "otrosGastosFin": 7320878.8204, "costoTierra": 0.0, "utilidadNeta": 0.0}, "porLograr": {"ingresos": 1510419919.6399999, "costoObra": 575602231.7237431, "gestionLicencias": 62295937.66886536, "contratistaGeneral": 86886408.08003998, "indirectoCorp": 6377660.9479967095, "gastosOpObra": 14136604.097966667, "proyectoEjecutivo": -109091.44953457452, "activosFijos": 0.0, "legal": 0.0, "sat": 0.0, "publicidad": 7589094.280962309, "comisionComercializacion": 95031507.20974748, "interesesBX": 100524952.89, "comisionAperturaBX": 0.0, "otrosGastosFin": 0.0, "costoTierra": 68903798.72887418, "utilidadNeta": 0.0}}}}, "equity": {"total": 243877381.7, "e1": 112151854.49110629, "e2": 131725527.20889369, "tierraE1": 59560626.94958785, "tierraE2": 184316754.75041214}, "scLabels": {"_sep1": "SC 1 \u2014 Gastos Operativos", "_sep2": "SC 2 \u2014 Gastos de Comercializacion", "_sep3": "SC 3 \u2014 Gastos Financieros", "_sep4": "Costo de Tierra", "_sep5": "Resultado"}, "vertientes": {"e1": {"label": "Etapa 1 (Vision Independiente)", "utilidadNeta": 22534527.466000408, "devolucion": 251854854.65645218, "margen": 0.01877663906976118, "multiplo": 4.228546063989929, "tir": 0.06305767366830452}, "cons": {"label": "Consolidado E1 + E2", "utilidadNeta": 605484478.7505225, "devolucion": 997471654.9814267, "margen": 0.19330454918740217, "multiplo": 7.701516287003736, "tir": 0.5194409453293573}}};
+const EMBEDDED_DATA = {"palancas": {"tierra": "capital", "provMonto": 8000000.0, "provFase": "e1"}, "equityTotal": 243877381.7, "tierraGasto": {"e1": 59560626.95, "e2": 69955642.03}, "criterioCorte": "Ago 2026 (parcial)", "fechaCorte": "2026-08-24", "e1": {"scenarios": ["Base Mar 2025", "Nov 2025", "Ene 2026", "Feb 2026", "Mar 2026", "Jun 2026", "Jul 2026"], "data": {"ingresos": [1145000532.0, 1189586152.48558, 1191297928.60747, 1191378034.1399999, 1192482785.3019047, 1194996106.3899999, 1200136370.6399999], "costoObra": [614876152.1899999, 628319372.4800001, 675954385.1299999, 680000000.0, 680000000.0, 697005295.3076155, 710662081.53], "gestionLicencias": [70000000.0, 70000000.0, 70000000.0, 70720000.0, 48494815.86819335, 49738156.17819335, 49738156.17819335], "contratistaGeneral": [61487615.219, 62831937.24800002, 67595438.513, 68000000.0, 85996005.87120003, 88632850.25568339, 88148493.50086394], "indirectoCorp": [23199000.0, 23199000.0, 23199000.0, 25160000.0, 26625229.79, 26625229.79, 26625229.79], "gastosOpObra": [15332976.966566661, 15332976.966566661, 15332976.966566661, 26078118.405039996, 15332976.966566661, 15428959.931739075, 15428959.931739075], "proyectoEjecutivo": [7600000.0, 7600000.0, 7600000.0, 16000000.0, 7600000.0, 7600000.0, 7600000.0], "activosFijos": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "legal": [0.0, 0.0, 410610.1075921909, 410610.1075921909, 410610.1075921909, 410610.1075921909, 410610.1075921909], "sat": [0.0, 0.0, 5813565.542299353, 5589390.54229935, 5813565.542299353, 5813565.542299353, 5815198.542299353], "publicidad": [13282006.1712, 13799199.368832726, 13819055.971846651, 13819985.196023997, 13832800.309502093, 13861954.834123997, 13921581.899423998], "comisionComercializacion": [66410030.856, 68995996.84416363, 69095279.85923326, 71482682.04839998, 69164001.54751046, 69309774.17062, 69607909.49712], "interesesBX": [96000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0], "comisionAperturaBX": [6305000.000000001, 6305000.000000001, 6305000.000000001, 6500000.0, 6305000.000000001, 6305000.000000001, 6305000.000000001], "otrosGastosFin": [19777948.847179748, 19777948.847179748, 19777948.847179748, 19374290.355791748, 19777948.847179748, 19777948.847179748, 19777995.247179747], "costoTierra": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "adelantoEtapa2": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "equipamiento": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "aniosProy": [6, 6, 6, 6, 6, 6, 6], "tierraBase": [59560626.95, 59560626.95, 59560626.95, 59560626.95, 59560626.95, 59560626.95, 59560626.95]}, "excelRef": {"utilidadNeta": 74095154.41558826, "margen": 0.06173894586335663, "multiplo": 0.3038213461990283, "tir": 0.05063689103317138}}, "e2": {"scenarios": ["Base Mar 2025", "Nov 2025", "Ene 2026", "Mar 2026", "Jun 2026", "Jul 2026"], "data": {"ingresos": [1578028908.2, 1851418162.0, 1862165054.7506359, 1871609102.0, 1929385893.0, 1932146244.0], "costoObra": [661414279.2765551, 694362193.71, 694362193.71, 741402268.0, 741402268.0, 741402268.0], "gestionLicencias": [80000000.0, 118502310.57000001, 118502310.57000001, 118502310.57000001, 118502310.57000001, 118502310.57000001], "contratistaGeneral": [79044056.39608039, 82866014.47036, 82866014.47036, 92711207.01003999, 92711207.01003999, 92711207.01003999], "indirectoCorp": [23149499.77467943, 24302676.779850002, 24302676.779850002, 28242068.03, 26242068.03, 28242068.03], "gastosOpObra": [8598385.630595217, 16850744.402843226, 16850744.402843226, 17934956.43, 17934956.43, 17934956.43], "proyectoEjecutivo": [7000000.0, 10683741.38811724, 10683741.38811724, 10683741.38811724, 10683741.38811724, 10683741.38811724], "activosFijos": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "legal": [0.0, 0.0, 482273.1924078091, 482273.1924078091, 482273.1924078091, 482273.1924078091], "sat": [0.0, 0.0, 0.0, 6785074.45770065, 7623487.457700649, 7623487.457700649], "publicidad": [18305135.33512, 21476450.679199997, 21601114.635107376, 21710665.5832, 22380876.358799998, 22412896.4304], "comisionComercializacion": [91525676.6756, 107382253.396, 108005573.17553687, 108553327.916, 111904381.79399998, 112064482.152], "interesesBX": [110000000.0, 110000000.0, 110000000.0, 110000000.0, 110000000.0, 110000000.0], "comisionAperturaBX": [0.0, 0.0, 9860081.204, 9860081.204, 9860081.204, 9860081.204], "otrosGastosFin": [0.0, 0.0, 7320878.8204, 7320878.8204, 7320878.8204, 7320878.8204], "costoTierra": [69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214], "adelantoEtapa2": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "equipamiento": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "aniosProy": [9, 9, 9, 9, 9, 9], "tierraBase": [69955642.03, 69955642.03, 69955642.03, 69955642.03, 69955642.03, 69955642.03]}, "excelRef": {"utilidadNeta": 582949951.2845223, "margen": 0.3017110910184924, "multiplo": 0.0, "tir": 0.0}}, "cons": {"scenarios": ["Ago 2026 (parcial)"], "data": {"ingresos": [3132282614.64], "costoObra": [1460064349.53], "gestionLicencias": [168240466.74819335], "contratistaGeneral": [180859700.51090392], "indirectoCorp": [54867297.82], "gastosOpObra": [33363916.361739077], "proyectoEjecutivo": [18283741.38811724], "activosFijos": [0.0], "legal": [892883.3], "sat": [13438686.000000002], "publicidad": [36334478.329824], "comisionComercializacion": [181672391.64911997], "interesesBX": [214000000.0], "comisionAperturaBX": [16165081.204], "otrosGastosFin": [27098874.067579746], "costoTierra": [131725527.20889369], "adelantoEtapa2": [0.0], "equipamiento": [0.0], "aniosProy": [9], "tierraBase": [131725527.20889369]}, "excelRef": {"utilidadNeta": 595275220.5216289, "margen": 0.19004518230231443, "multiplo": 2.4408791679332222, "tir": 0.27120879643702467}}, "logrado": {"e1": {"jul": {"logrado": {"ingresos": 1080957539.0, "costoObra": 662212244.39, "gestionLicencias": 49738156.17819335, "contratistaGeneral": 78932921.2164001, "indirectoCorp": 21924264.437155116, "gastosOpObra": 15428959.931739075, "proyectoEjecutivo": 7545754.365034394, "activosFijos": 5771353.5604, "legal": 410610.1075921909, "sat": 5815198.542299353, "publicidad": 18202145.0504463, "comisionComercializacion": 33443631.231835388, "interesesBX": 99828523.24, "comisionAperturaBX": 6305000.000000001, "otrosGastosFin": 19777995.247179747, "costoTierra": 0.0, "adelantoEtapa2": 0.0, "equipamiento": 0.0, "utilidadNeta": 55620781.50172497}, "porLograr": {"ingresos": 119178831.63999987, "costoObra": 48449837.139999986, "gestionLicencias": 0.0, "contratistaGeneral": 9215572.284463838, "indirectoCorp": 4700965.352844883, "gastosOpObra": 0.0, "proyectoEjecutivo": 54245.634965606034, "activosFijos": 0.0, "legal": 0.0, "sat": 0.0, "publicidad": -4280563.151022304, "comisionComercializacion": 36164278.265284605, "interesesBX": 4171476.7600000054, "comisionAperturaBX": 0.0, "otrosGastosFin": 0.0, "costoTierra": 0.0, "adelantoEtapa2": 0.0, "equipamiento": 0.0, "utilidadNeta": 18474372.913863286}}}, "e2": {"jul": {"logrado": {"ingresos": 421726324.36, "costoObra": 165800036.2762569, "gestionLicencias": 56206372.90113465, "contratistaGeneral": 5824798.93, "indirectoCorp": 21864407.08200329, "gastosOpObra": 3798352.3320333324, "proyectoEjecutivo": 10792832.837651815, "activosFijos": 0.0, "legal": 482273.1924078091, "sat": 7623487.457700649, "publicidad": 14823802.14943769, "comisionComercializacion": 17032974.94225252, "interesesBX": 9475047.11, "comisionAperturaBX": 9860081.204, "otrosGastosFin": 7320878.8204, "costoTierra": 0.0, "adelantoEtapa2": 0.0, "equipamiento": 0.0, "utilidadNeta": 90820979.12472136}, "porLograr": {"ingresos": 1510419919.6399999, "costoObra": 575602231.7237431, "gestionLicencias": 62295937.66886536, "contratistaGeneral": 86886408.08003998, "indirectoCorp": 6377660.9479967095, "gastosOpObra": 14136604.097966667, "proyectoEjecutivo": -109091.44953457452, "activosFijos": 0.0, "legal": 0.0, "sat": 0.0, "publicidad": 7589094.280962309, "comisionComercializacion": 95031507.20974748, "interesesBX": 100524952.89, "comisionAperturaBX": 0.0, "otrosGastosFin": 0.0, "costoTierra": 131725527.20889369, "adelantoEtapa2": 0.0, "equipamiento": 0.0, "utilidadNeta": 430359086.9813192}}}}};
 
 let supa = null;
 const supaOk = SUPA_URL && SUPA_URL.indexOf('<') === -1;
@@ -313,8 +381,9 @@ const EDITABLE_KEYS = new Set([
   'ingresos','costoObra','gestionLicencias','contratistaGeneral',
   'indirectoCorp','gastosOpObra','proyectoEjecutivo','activosFijos',
   'legal','sat','interesesBX','comisionAperturaBX','otrosGastosFin',
-  'costoTierra','adelantoEtapa2','equipamiento','aniosProy',
+  'adelantoEtapa2','equipamiento','aniosProy',
 ]);
+/* provision y costoTierra se controlan con las palancas, no con edicion directa */
 
 /* ===== FORMULA-DRIVEN (auto-calcula de ingresos) ===== */
 const FORMULA_DRIVEN = new Set(['publicidad','comisionComercializacion']);
@@ -323,6 +392,8 @@ const FORMULA_DRIVEN = new Set(['publicidad','comisionComercializacion']);
 const ROWS = [
   {key:'ingresos',                    label:'Ingreso por Ventas',               fmt:fmtFull, type:'data',       isExpense:false},
   {key:'costoObra',                   label:'Construccion (Hard Cost)',          fmt:fmtFull, type:'data',       isExpense:true},
+  {key:'provision',                   label:'Contratos por cerrar',              fmt:fmtFull, type:'data',       isExpense:true, esProvision:true},
+  {key:'sumaHC',                      label:'Suma Hard Cost',                    fmt:fmtFull, type:'total',      isExpense:true},
   {key:'utilidadBruta',               label:'Utilidad Bruta',                   fmt:fmtFull, type:'total',      isExpense:false},
   {key:'_sep1',                       label:'Gastos Operativos',                 type:'section', sc:'SC 1'},
   {key:'gestionLicencias',            label:'Gestion, Derechos y Licencias',    fmt:fmtFull, type:'data',       isExpense:true},
@@ -367,40 +438,205 @@ const DEVOL_DETAIL = [
 ];
 
 /* ===== RECALCULO EN CASCADA ===== */
+/* El consolidado se deriva sumando E1 + E2, no se lee del Excel.
+   Asi la reasignacion de la provision entre etapas nunca lo mueve. */
+const CONS_INPUTS = ['ingresos','costoObra','gestionLicencias','contratistaGeneral',
+  'indirectoCorp','gastosOpObra','proyectoEjecutivo','activosFijos','legal','sat',
+  'publicidad','comisionComercializacion','interesesBX','comisionAperturaBX',
+  'otrosGastosFin','adelantoEtapa2','equipamiento','tierraBase'];
+
+function derivarConsolidado(){
+  if(!currentData.e1 || !currentData.e2 || !currentData.cons) return;
+  const a = currentData.e1.data, b = currentData.e2.data, c = currentData.cons.data;
+  const ia = currentData.e1.scenarios.length - 1;
+  const ib = currentData.e2.scenarios.length - 1;
+  CONS_INPUTS.forEach(k => {
+    c[k] = c[k] || [];
+    c[k][0] = (a[k]?.[ia] || 0) + (b[k]?.[ib] || 0);
+  });
+  c.aniosProy = [9];
+}
+
 function recalculate(tabKey) {
+  if(tabKey === 'cons') derivarConsolidado();
   const tab = currentData[tabKey];
   if (!tab || !tab.data) return;
   const d = tab.data;
   const n = tab.scenarios.length;
+  const P = currentData.palancas || {tierra:'capital', provMonto:0, provFase:'e1'};
+  const EQ = currentData.equityTotal || 0;
+
   for (let i = 0; i < n; i++) {
-    // Formula-driven
-    d.publicidad[i] = (d.ingresos[i] || 0) * 0.0116;
-    d.comisionComercializacion[i] = (d.ingresos[i] || 0) * 0.058;
-    // Totals
-    d.utilidadBruta[i] = (d.ingresos[i]||0) - (d.costoObra[i]||0);
+    // --- PALANCA 2: la provision entra al Hard Cost solo de la etapa asignada.
+    //     En consolidado siempre entra: mover de E1 a E2 no crea ni destruye dinero.
+    const prov = (tabKey === 'cons')
+      ? (P.provFase === 'none' ? 0 : (P.provMonto || 0))   // una sola vez, venga de donde venga
+      : (P.provFase === tabKey ? (P.provMonto || 0) : 0);
+    d.provision = d.provision || [];
+    d.provision[i] = prov;
+    d.sumaHC = d.sumaHC || [];
+    d.sumaHC[i] = (d.costoObra[i] || 0) + prov;
+
+    d.utilidadBruta = d.utilidadBruta || [];
+    d.utilidadBruta[i] = (d.ingresos[i] || 0) - d.sumaHC[i];
+
+    d.totalGastosOperativos = d.totalGastosOperativos || [];
     d.totalGastosOperativos[i] = ['gestionLicencias','contratistaGeneral','indirectoCorp',
       'gastosOpObra','proyectoEjecutivo','activosFijos','legal','sat']
       .reduce((s, k) => s + (d[k]?.[i] || 0), 0);
+
+    d.totalGastosComercializacion = d.totalGastosComercializacion || [];
     d.totalGastosComercializacion[i] = (d.publicidad[i]||0) + (d.comisionComercializacion[i]||0);
-    d.utilidadOperativa[i] = (d.utilidadBruta[i]||0) - (d.totalGastosOperativos[i]||0) - (d.totalGastosComercializacion[i]||0);
-    d.totalGastosFinancieros[i] = (d.interesesBX[i]||0) + (d.comisionAperturaBX[i]||0) + (d.otrosGastosFin[i]||0);
-    d.totalCostoTierra[i] = d.costoTierra[i] || 0;
-    d.utilidadNeta[i] = (d.utilidadOperativa[i]||0) - (d.totalGastosFinancieros[i]||0)
-      - (d.totalCostoTierra[i]||0) - (d.adelantoEtapa2[i]||0) - (d.equipamiento[i]||0);
+
+    d.utilidadOperativa = d.utilidadOperativa || [];
+    d.utilidadOperativa[i] = d.utilidadBruta[i] - d.totalGastosOperativos[i]
+                           - d.totalGastosComercializacion[i];
+
+    d.totalGastosFinancieros = d.totalGastosFinancieros || [];
+    d.totalGastosFinancieros[i] = (d.interesesBX[i]||0) + (d.comisionAperturaBX[i]||0)
+                                + (d.otrosGastosFin[i]||0);
+
+    // --- PALANCA 1: la tierra entra al P&L solo bajo el criterio de gasto operativo
+    const tierra = (P.tierra === 'gasto') ? (d.tierraBase?.[i] || 0) : 0;
+    d.totalCostoTierra = d.totalCostoTierra || [];
+    d.totalCostoTierra[i] = tierra;
+
+    d.utilidadNeta = d.utilidadNeta || [];
+    d.utilidadNeta[i] = d.utilidadOperativa[i] - d.totalGastosFinancieros[i]
+                      - tierra - (d.adelantoEtapa2[i]||0) - (d.equipamiento[i]||0);
+
+    d.margen = d.margen || [];
     d.margen[i] = d.ingresos[i] ? d.utilidadNeta[i] / d.ingresos[i] : 0;
-    d.inversionSocios[i] = d.costoTierra[i] || 0;
-    // devolucion: formula = utilidadNeta + tierra + contratistaGeneral + listing(2%) + fixos
-    const fixos = d.devolucionFixos?.[i] || 0;
-    d.devolucion[i] = (d.utilidadNeta[i]||0) + (d.inversionSocios[i]||0)
-      + (d.contratistaGeneral[i]||0) + (d.ingresos[i]||0) * 0.02 + fixos;
-    d.multiplo[i] = d.inversionSocios[i] ? d.devolucion[i] / d.inversionSocios[i] : 0;
-    if (!d.aniosProy[i]) d.aniosProy[i] = (tabKey==='e1'?6:9);
-    d.tir[i] = d.inversionSocios[i]
-      ? (d.utilidadNeta[i] / d.inversionSocios[i]) / d.aniosProy[i] : 0;
+
+    // --- Base de inversion: cambia con la palanca de tierra
+    d.inversionSocios = d.inversionSocios || [];
+    d.inversionSocios[i] = (P.tierra === 'capital') ? EQ : (d.tierraBase?.[i] || 0);
+
+    if (!d.aniosProy[i]) d.aniosProy[i] = (tabKey === 'e1' ? 6 : 9);
+
+    // --- Multiplo y TIR sobre la base vigente
+    d.multiplo = d.multiplo || [];
+    d.multiplo[i] = d.inversionSocios[i] ? d.utilidadNeta[i] / d.inversionSocios[i] : 0;
+    d.tir = d.tir || [];
+    d.tir[i] = d.multiplo[i] / (d.aniosProy[i] || 1);
   }
 }
 
+/* ===== PALANCAS ===== */
+const PAL_DEFAULT = JSON.parse(JSON.stringify(
+  (typeof EMBEDDED_DATA !== 'undefined' && EMBEDDED_DATA.palancas) || {}));
 
+function fmtMonto(v){
+  return '$' + Math.round(v||0).toLocaleString('es-MX');
+}
+
+function pintarPalancas(){
+  const P = currentData.palancas; if(!P) return;
+  document.getElementById('pal-t-cap')?.classList.toggle('on', P.tierra==='capital');
+  document.getElementById('pal-t-gas')?.classList.toggle('on', P.tierra==='gasto');
+  ['e1','e2','none'].forEach(f =>
+    document.getElementById('pal-f-'+f)?.classList.toggle('on', P.provFase===f));
+  const inp = document.getElementById('pal-monto');
+  if(inp && document.activeElement !== inp) inp.value = fmtMonto(P.provMonto);
+
+  // Sello del criterio activo, siempre visible en el header
+  const FASE = {e1:'Etapa 1', e2:'Etapa 2', none:'sin asignar'};
+  const sello = document.getElementById('sello-criterio');
+  if(sello){
+    sello.innerHTML = `Tierra: <b>${P.tierra==='capital'?'capital aportado':'gasto operativo'}</b>`
+                    + ` &nbsp;·&nbsp; Provision <b>${fmtMonto(P.provMonto)}</b> en <b>${FASE[P.provFase]}</b>`;
+  }
+
+  // Aviso si la configuracion no es la guardada
+  const cambiado = JSON.stringify(P) !== JSON.stringify(PAL_DEFAULT);
+  const av = document.getElementById('pal-aviso');
+  if(av){
+    av.classList.toggle('on', cambiado);
+    const t = document.getElementById('pal-aviso-txt');
+    if(t) t.textContent = 'Configuracion modificada. No es la guardada como default.';
+  }
+  const g = document.getElementById('pal-guardar');
+  if(g) g.style.display = (isAdmin && cambiado) ? 'inline-block' : 'none';
+}
+
+function aplicarPalancas(){
+  recalculate('e1'); recalculate('e2'); recalculate('cons');
+  validarConsolidado();
+  pintarPalancas();
+  renderAll();
+}
+
+function setTierra(modo){
+  currentData.palancas.tierra = modo;
+  aplicarPalancas();
+}
+
+function setProvFase(fase){
+  currentData.palancas.provFase = fase;
+  aplicarPalancas();
+}
+
+function setProvMonto(v){
+  const num = parseFloat(String(v).replace(/[^0-9.\-]/g,''));
+  if(isNaN(num)) { pintarPalancas(); return; }
+  currentData.palancas.provMonto = num;
+  aplicarPalancas();
+}
+
+function resetPalancas(){
+  currentData.palancas = JSON.parse(JSON.stringify(PAL_DEFAULT));
+  aplicarPalancas();
+}
+
+/* Mover la provision entre etapas NO puede cambiar el consolidado: es reasignacion
+   interna. Cambiar el criterio de tierra SI debe moverlo — eso es el punto de la
+   palanca. Por eso la referencia se guarda por criterio de tierra. */
+const _consRef = {};
+function refKey(){
+  const P = currentData.palancas || {};
+  return `${P.tierra}|${P.provMonto}`;   // mismo criterio y mismo monto
+}
+function validarConsolidado(){
+  const el = document.getElementById('valida-cons');
+  if(!el || !currentData.cons?.data?.utilidadNeta) return;
+  const k = refKey();
+  const actual = currentData.cons.data.utilidadNeta[0];
+  if(_consRef[k] === undefined){ _consRef[k] = actual; el.classList.remove('on'); return; }
+  const dif = Math.abs(actual - _consRef[k]);
+  if(dif > 1){
+    el.classList.add('on');
+    el.textContent = `Alerta de consistencia: el consolidado se movio ${fmtMonto(dif)} `
+      + `al reasignar la provision entre etapas. Eso no deberia pasar — es dinero que `
+      + `cambia de bolsillo, no dinero nuevo. Revisar la cascada antes de usar estas cifras.`;
+  } else {
+    el.classList.remove('on');
+  }
+}
+function fijarRefConsolidado(){
+  const v = currentData.cons?.data?.utilidadNeta?.[0];
+  if(v !== undefined) _consRef[refKey()] = v;
+}
+
+async function guardarPalancas(){
+  if(!supa || !isAdmin) return;
+  try{
+    const {data:ver} = await supa.from('cierre_versiones')
+      .select('id,data').eq('dashboard_id',DASHBOARD_ID).eq('is_active',true).single();
+    if(!ver) return;
+    const nd = {...ver.data, palancas: currentData.palancas};
+    await supa.from('cierre_versiones').update({data:nd}).eq('id',ver.id);
+    await supa.from('ediciones').insert({
+      editado_por: userSession?.user?.email || 'admin',
+      pagina:'palancas', campo_tipo:'configuracion', campo_key:'palancas',
+      valor_antes: JSON.stringify(PAL_DEFAULT),
+      valor_despues: JSON.stringify(currentData.palancas),
+      motivo:'Cambio de default de supuestos'
+    });
+    Object.assign(PAL_DEFAULT, JSON.parse(JSON.stringify(currentData.palancas)));
+    pintarPalancas();
+    alert('Configuracion guardada como default.');
+  }catch(e){ console.warn(e); alert('No se pudo guardar: '+e.message); }
+}
 
 /* ===== PAGINA 4: BREAKDOWN HC/SC  (bloque 4) ===== */
 function renderBreakdown(){
@@ -630,11 +866,13 @@ function renderTab(id, tabData, logradoData) {
     let onclk='';
     if(row.type==='expandable') onclk=` onclick="toggleDetail(this,'${id}','${row.key}')"`;
 
-    tblHtml+=`<tr class="${trCls}"${secAttr}${secHidden}${onclk}>`;
+    const provCls = row.esProvision ? ' provision' : '';
+    tblHtml+=`<tr class="${trCls}${provCls}"${secAttr}${secHidden}${onclk}>`;
     /* Label cell */
     const lbl = currentData.labels?.[row.key] || row.label;
     const formulaDrivenNote = row.formulaDriven ? ' <span style="font-size:9px;opacity:.5;font-style:italic">fórmula</span>' : '';
-    tblHtml+=`<td data-rowkey="${row.key}">${lbl}${formulaDrivenNote}</td>`;
+    const chipEst = row.esProvision ? '<span class="chip-est">estimado</span>' : '';
+    tblHtml+=`<td data-rowkey="${row.key}">${lbl}${formulaDrivenNote}${chipEst}</td>`;
 
     for(let i=0;i<scenarios.length;i++){
       const rawVal=d[row.key]?.[i];
@@ -1183,6 +1421,10 @@ async function init(){
     if(cp) cp.style.display='none';   // sin Supabase no hay historia que consultar
   }
   pintarBannerCorte();
+  if(!currentData.palancas) currentData.palancas = JSON.parse(JSON.stringify(PAL_DEFAULT));
+  recalculate('e1'); recalculate('e2'); recalculate('cons');
+  fijarRefConsolidado();
+  pintarPalancas();
   renderAll();
 }
 init();
