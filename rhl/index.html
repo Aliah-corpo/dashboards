@@ -550,8 +550,6 @@ const ROWS_BASE = [
   {key:'_sep4',                       label:'Costo de Tierra',                   type:'section'},
   {key:'costoTierra',                 label:'Costo de la tierra',               fmt:fmtFull, type:'data',       isExpense:true},
   {key:'totalCostoTierra',            label:'Total Costo tierra',               fmt:fmtFull, type:'total',      isExpense:true},
-  {key:'adelantoEtapa2',              label:'Adelanto Etapa 2',                 fmt:fmtFull, type:'data',       isExpense:false},
-  {key:'equipamiento',                label:'Equipamiento',                      fmt:fmtFull, type:'data',       isExpense:false},
   {key:'_sep45',                      label:'Recuperaciones',                    type:'section'},
   {key:'recEquipamiento',             label:'Equipamiento',                      fmt:fmtFull, type:'data',  isExpense:false},
   {key:'recNegociacion',              label:'Negociacion Contratistas',          fmt:fmtFull, type:'data',  isExpense:false},
@@ -684,6 +682,36 @@ function recalculate(tabKey) {
 }
 
 
+
+
+/* ===== BACKFILL DE ESQUEMA =====
+   Una version guardada en Supabase puede haberse creado antes de que
+   existieran ciertas partidas. Sin esto, esas filas salen vacias aunque
+   el HTML si las traiga. Se rellena solo lo que falte; nunca se pisa
+   un dato que la version guardada ya tenga. */
+function rellenarFaltantes(destino, base){
+  if(!destino || !base) return destino;
+  ['e1','e2','cons'].forEach(t=>{
+    if(!base[t]) return;
+    if(!destino[t]){ destino[t] = JSON.parse(JSON.stringify(base[t])); return; }
+    const dd = destino[t].data || (destino[t].data = {});
+    const bd = base[t].data || {};
+    const n  = (destino[t].scenarios || []).length;
+    Object.keys(bd).forEach(k=>{
+      if(Array.isArray(dd[k]) && dd[k].length) return;   // ya lo tiene
+      const src = bd[k];
+      dd[k] = Array.isArray(src)
+        ? Array.from({length:n}, (_,i)=> src[i] !== undefined ? src[i] : (src[src.length-1] ?? 0))
+        : src;
+      faltantesRellenados.push(`${t}.${k}`);
+    });
+  });
+  ['equityTotal','palancas','criterioCorte','fechaCorte'].forEach(k=>{
+    if(destino[k] === undefined && base[k] !== undefined) destino[k] = base[k];
+  });
+  return destino;
+}
+let faltantesRellenados = [];
 
 /* ===== GATE DE LOGIN ===== */
 function mostrarGate(msg){
@@ -966,7 +994,8 @@ async function onCorteChange(){
       return;
     }
     const v = data[0];
-    currentData  = v.data;
+    faltantesRellenados=[];
+    currentData  = rellenarFaltantes(v.data, EMBEDDED_DATA);
     corteActivo  = v.fecha_corte;
     enHistorico  = (v.fecha_corte !== corteVigente);
     document.getElementById('ver-indicator').textContent = v.version_label;
@@ -1422,7 +1451,10 @@ async function loadActiveVersion(){
   try{
     const{data,error}=await supa.from('cierre_versiones').select('id,version_label,uploaded_at,fecha_corte,data').eq('dashboard_id',DASHBOARD_ID).eq('is_active',true).limit(1).single();
     if(error||!data)return false;
-    currentData=data.data;activeVerId=data.id;usingLive=true;corteActivo=data.fecha_corte;enHistorico=false;
+    faltantesRellenados=[];
+    currentData=rellenarFaltantes(data.data, EMBEDDED_DATA);
+    activeVerId=data.id;usingLive=true;corteActivo=data.fecha_corte;enHistorico=false;
+    if(faltantesRellenados.length) console.info('Backfill de esquema:', faltantesRellenados.length, 'campos');
     document.getElementById('ver-indicator').textContent=data.version_label;
     document.getElementById('ver-live').style.display='block';
     return true;
