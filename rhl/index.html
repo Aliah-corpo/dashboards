@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Resumen de Cierre v5 RHL — Aliah Developments</title>
+<title>Resumen de Cierre — Aliah Lomas Verdes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -35,6 +35,27 @@ header{background:var(--charcoal);color:var(--white);padding:22px 0 18px;}
 .ver-live{font-size:10px;color:var(--sage);display:none;letter-spacing:.05em;}
 .admin-trigger{background:none;border:none;color:rgba(255,255,255,.15);cursor:pointer;font-size:14px;padding:2px 3px;line-height:1;transition:color .2s;margin-top:2px;}
 .admin-trigger:hover{color:rgba(255,255,255,.5);}
+
+/* GATE DE LOGIN */
+#gate{position:fixed;inset:0;z-index:9000;background:var(--charcoal);
+  display:flex;align-items:center;justify-content:center;padding:24px;}
+#gate.oculto{display:none;}
+.gate-box{background:var(--white);border-radius:18px;padding:40px 38px;width:100%;max-width:400px;
+  box-shadow:0 24px 60px rgba(0,0,0,.4);}
+.gate-box img{height:46px;margin-bottom:26px;opacity:.9;}
+.gate-box h2{font-size:19px;margin:0 0 6px;font-weight:600;}
+.gate-box p.sub{font-size:13px;color:var(--muted);margin:0 0 24px;}
+.gate-box label{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 6px;}
+.gate-box input{width:100%;border:1px solid var(--border);border-radius:9px;padding:11px 13px;
+  font-size:14px;font-family:'DM Sans',sans-serif;margin-bottom:16px;}
+.gate-box input:focus{outline:none;border-color:var(--brass);}
+.gate-box button{width:100%;background:var(--olive);color:#fff;border:none;border-radius:9px;
+  padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.gate-box button:hover{background:var(--green);}
+.gate-err{background:rgba(154,59,59,.09);border:1px solid rgba(154,59,59,.3);color:var(--error);
+  border-radius:8px;padding:10px 13px;font-size:12.5px;font-weight:600;margin-bottom:14px;display:none;}
+.gate-err.on{display:block;}
 
 /* PALANCAS */
 .palancas{background:var(--white);border:1px solid var(--border);border-left:3px solid var(--brass);
@@ -273,6 +294,21 @@ table.data.hide-col-6 tr>:nth-child(8){display:none;}
 </head>
 <body>
 
+<div id="gate">
+  <div class="gate-box">
+    <img src="data:image/png;base64,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" alt="Aliah Developments">
+    <h2>Resumen de Cierre</h2>
+    <p class="sub">Aliah Lomas Verdes &middot; acceso restringido</p>
+    <div class="gate-err" id="gate-err"></div>
+    <label for="gate-mail">Correo</label>
+    <input id="gate-mail" type="email" autocomplete="username" placeholder="nombre@aliah.mx">
+    <label for="gate-pass">Contrase&ntilde;a</label>
+    <input id="gate-pass" type="password" autocomplete="current-password"
+           onkeydown="if(event.key==='Enter')entrar()">
+    <button onclick="entrar()">Entrar</button>
+  </div>
+</div>
+
 <header>
 <div class="hdr-inner">
   <div class="hdr-left">
@@ -289,7 +325,7 @@ table.data.hide-col-6 tr>:nth-child(8){display:none;}
       <button class="corte-reset" id="corte-reset" onclick="resetCorte()" title="Volver al corte vigente" style="display:none">&#8634;</button>
     </div>
     <span class="sello" id="sello-criterio"></span>
-    <span class="ver-label" id="ver-indicator">Ago 2026 (parcial)</span>
+    <span class="ver-label" id="ver-indicator">Ago 2026 final</span>
     <span class="ver-live" id="ver-live">datos en vivo</span>
     <button class="admin-trigger" onclick="openAdmin()" title="Administracion">&#9881;</button>
   </div>
@@ -352,7 +388,7 @@ table.data.hide-col-6 tr>:nth-child(8){display:none;}
 const SUPA_URL = 'https://ifmnpzxkictbwgcznxex.supabase.co';
 const SUPA_KEY = 'sb_publishable_mP3VAPMRuFqJPz4pwE0G0Q_BfuSBF23';
 const DASHBOARD_ID = 'rhl';
-const EMBEDDED_DATA = {"palancas": {"tierra": "capital", "provMonto": 8000000.0, "provFase": "e1"}, "equityTotal": 243877381.7, "tierraGasto": {"e1": 59560626.95, "e2": 69955642.03}, "criterioCorte": "Ago 2026 (parcial)", "fechaCorte": "2026-08-24", "e1": {"scenarios": ["Base Mar 2025", "Nov 2025", "Ene 2026", "Feb 2026", "Mar 2026", "Jun 2026", "Jul 2026"], "data": {"ingresos": [1145000532.0, 1189586152.48558, 1191297928.60747, 1191378034.1399999, 1192482785.3019047, 1194996106.3899999, 1200136370.6399999], "costoObra": [614876152.1899999, 628319372.4800001, 675954385.1299999, 680000000.0, 680000000.0, 697005295.3076155, 710662081.53], "gestionLicencias": [70000000.0, 70000000.0, 70000000.0, 70720000.0, 48494815.86819335, 49738156.17819335, 49738156.17819335], "contratistaGeneral": [61487615.219, 62831937.24800002, 67595438.513, 68000000.0, 85996005.87120003, 88632850.25568339, 88148493.50086394], "indirectoCorp": [23199000.0, 23199000.0, 23199000.0, 25160000.0, 26625229.79, 26625229.79, 26625229.79], "gastosOpObra": [15332976.966566661, 15332976.966566661, 15332976.966566661, 26078118.405039996, 15332976.966566661, 15428959.931739075, 15428959.931739075], "proyectoEjecutivo": [7600000.0, 7600000.0, 7600000.0, 16000000.0, 7600000.0, 7600000.0, 7600000.0], "activosFijos": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "legal": [0.0, 0.0, 410610.1075921909, 410610.1075921909, 410610.1075921909, 410610.1075921909, 410610.1075921909], "sat": [0.0, 0.0, 5813565.542299353, 5589390.54229935, 5813565.542299353, 5813565.542299353, 5815198.542299353], "publicidad": [13282006.1712, 13799199.368832726, 13819055.971846651, 13819985.196023997, 13832800.309502093, 13861954.834123997, 13921581.899423998], "comisionComercializacion": [66410030.856, 68995996.84416363, 69095279.85923326, 71482682.04839998, 69164001.54751046, 69309774.17062, 69607909.49712], "interesesBX": [96000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0], "comisionAperturaBX": [6305000.000000001, 6305000.000000001, 6305000.000000001, 6500000.0, 6305000.000000001, 6305000.000000001, 6305000.000000001], "otrosGastosFin": [19777948.847179748, 19777948.847179748, 19777948.847179748, 19374290.355791748, 19777948.847179748, 19777948.847179748, 19777995.247179747], "costoTierra": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "adelantoEtapa2": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "equipamiento": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "aniosProy": [6, 6, 6, 6, 6, 6, 6], "tierraBase": [59560626.95, 59560626.95, 59560626.95, 59560626.95, 59560626.95, 59560626.95, 59560626.95]}, "excelRef": {"utilidadNeta": 74095154.41558826, "margen": 0.06173894586335663, "multiplo": 0.3038213461990283, "tir": 0.05063689103317138}}, "e2": {"scenarios": ["Base Mar 2025", "Nov 2025", "Ene 2026", "Mar 2026", "Jun 2026", "Jul 2026"], "data": {"ingresos": [1578028908.2, 1851418162.0, 1862165054.7506359, 1871609102.0, 1929385893.0, 1932146244.0], "costoObra": [661414279.2765551, 694362193.71, 694362193.71, 741402268.0, 741402268.0, 741402268.0], "gestionLicencias": [80000000.0, 118502310.57000001, 118502310.57000001, 118502310.57000001, 118502310.57000001, 118502310.57000001], "contratistaGeneral": [79044056.39608039, 82866014.47036, 82866014.47036, 92711207.01003999, 92711207.01003999, 92711207.01003999], "indirectoCorp": [23149499.77467943, 24302676.779850002, 24302676.779850002, 28242068.03, 26242068.03, 28242068.03], "gastosOpObra": [8598385.630595217, 16850744.402843226, 16850744.402843226, 17934956.43, 17934956.43, 17934956.43], "proyectoEjecutivo": [7000000.0, 10683741.38811724, 10683741.38811724, 10683741.38811724, 10683741.38811724, 10683741.38811724], "activosFijos": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "legal": [0.0, 0.0, 482273.1924078091, 482273.1924078091, 482273.1924078091, 482273.1924078091], "sat": [0.0, 0.0, 0.0, 6785074.45770065, 7623487.457700649, 7623487.457700649], "publicidad": [18305135.33512, 21476450.679199997, 21601114.635107376, 21710665.5832, 22380876.358799998, 22412896.4304], "comisionComercializacion": [91525676.6756, 107382253.396, 108005573.17553687, 108553327.916, 111904381.79399998, 112064482.152], "interesesBX": [110000000.0, 110000000.0, 110000000.0, 110000000.0, 110000000.0, 110000000.0], "comisionAperturaBX": [0.0, 0.0, 9860081.204, 9860081.204, 9860081.204, 9860081.204], "otrosGastosFin": [0.0, 0.0, 7320878.8204, 7320878.8204, 7320878.8204, 7320878.8204], "costoTierra": [69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214], "adelantoEtapa2": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "equipamiento": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "aniosProy": [9, 9, 9, 9, 9, 9], "tierraBase": [69955642.03, 69955642.03, 69955642.03, 69955642.03, 69955642.03, 69955642.03]}, "excelRef": {"utilidadNeta": 582949951.2845223, "margen": 0.3017110910184924, "multiplo": 0.0, "tir": 0.0}}, "cons": {"scenarios": ["Ago 2026 (parcial)"], "data": {"ingresos": [3132282614.64], "costoObra": [1460064349.53], "gestionLicencias": [168240466.74819335], "contratistaGeneral": [180859700.51090392], "indirectoCorp": [54867297.82], "gastosOpObra": [33363916.361739077], "proyectoEjecutivo": [18283741.38811724], "activosFijos": [0.0], "legal": [892883.3], "sat": [13438686.000000002], "publicidad": [36334478.329824], "comisionComercializacion": [181672391.64911997], "interesesBX": [214000000.0], "comisionAperturaBX": [16165081.204], "otrosGastosFin": [27098874.067579746], "costoTierra": [131725527.20889369], "adelantoEtapa2": [0.0], "equipamiento": [0.0], "aniosProy": [9], "tierraBase": [131725527.20889369]}, "excelRef": {"utilidadNeta": 595275220.5216289, "margen": 0.19004518230231443, "multiplo": 2.4408791679332222, "tir": 0.27120879643702467}}, "logrado": {"e1": {"jul": {"logrado": {"ingresos": 1080957539.0, "costoObra": 662212244.39, "gestionLicencias": 49738156.17819335, "contratistaGeneral": 78932921.2164001, "indirectoCorp": 21924264.437155116, "gastosOpObra": 15428959.931739075, "proyectoEjecutivo": 7545754.365034394, "activosFijos": 5771353.5604, "legal": 410610.1075921909, "sat": 5815198.542299353, "publicidad": 18202145.0504463, "comisionComercializacion": 33443631.231835388, "interesesBX": 99828523.24, "comisionAperturaBX": 6305000.000000001, "otrosGastosFin": 19777995.247179747, "costoTierra": 0.0, "adelantoEtapa2": 0.0, "equipamiento": 0.0, "utilidadNeta": 55620781.50172497}, "porLograr": {"ingresos": 119178831.63999987, "costoObra": 48449837.139999986, "gestionLicencias": 0.0, "contratistaGeneral": 9215572.284463838, "indirectoCorp": 4700965.352844883, "gastosOpObra": 0.0, "proyectoEjecutivo": 54245.634965606034, "activosFijos": 0.0, "legal": 0.0, "sat": 0.0, "publicidad": -4280563.151022304, "comisionComercializacion": 36164278.265284605, "interesesBX": 4171476.7600000054, "comisionAperturaBX": 0.0, "otrosGastosFin": 0.0, "costoTierra": 0.0, "adelantoEtapa2": 0.0, "equipamiento": 0.0, "utilidadNeta": 18474372.913863286}}}, "e2": {"jul": {"logrado": {"ingresos": 421726324.36, "costoObra": 165800036.2762569, "gestionLicencias": 56206372.90113465, "contratistaGeneral": 5824798.93, "indirectoCorp": 21864407.08200329, "gastosOpObra": 3798352.3320333324, "proyectoEjecutivo": 10792832.837651815, "activosFijos": 0.0, "legal": 482273.1924078091, "sat": 7623487.457700649, "publicidad": 14823802.14943769, "comisionComercializacion": 17032974.94225252, "interesesBX": 9475047.11, "comisionAperturaBX": 9860081.204, "otrosGastosFin": 7320878.8204, "costoTierra": 0.0, "adelantoEtapa2": 0.0, "equipamiento": 0.0, "utilidadNeta": 90820979.12472136}, "porLograr": {"ingresos": 1510419919.6399999, "costoObra": 575602231.7237431, "gestionLicencias": 62295937.66886536, "contratistaGeneral": 86886408.08003998, "indirectoCorp": 6377660.9479967095, "gastosOpObra": 14136604.097966667, "proyectoEjecutivo": -109091.44953457452, "activosFijos": 0.0, "legal": 0.0, "sat": 0.0, "publicidad": 7589094.280962309, "comisionComercializacion": 95031507.20974748, "interesesBX": 100524952.89, "comisionAperturaBX": 0.0, "otrosGastosFin": 0.0, "costoTierra": 131725527.20889369, "adelantoEtapa2": 0.0, "equipamiento": 0.0, "utilidadNeta": 430359086.9813192}}}}};
+const EMBEDDED_DATA = {"palancas": {"tierra": "capital", "provMonto": 8000000.0, "provFase": "none"}, "equityTotal": 243877381.7, "criterioCorte": "Ago 2026 final", "fechaCorte": "2026-08-24", "e1": {"scenarios": ["Base Mar 2025", "Nov 2025", "Ene 2026", "Feb 2026", "Mar 2026", "Jun 2026", "Jul 2026"], "data": {"ingresos": [1145000532.0, 1189586152.48558, 1191297928.60747, 1191378034.1399999, 1192482785.3019047, 1194996106.3899999, 1200136370.6399999], "costoObra": [614876152.1899999, 628319372.4800001, 675954385.1299999, 680000000.0, 680000000.0, 697005295.3076155, 710662081.53], "gestionLicencias": [70000000.0, 70000000.0, 70000000.0, 70720000.0, 48494815.86819335, 49738156.17819335, 49738156.17819335], "contratistaGeneral": [61487615.219, 62831937.24800002, 67595438.513, 68000000.0, 85996005.87120003, 88632850.25568339, 88148493.50086394], "indirectoCorp": [23199000.0, 23199000.0, 23199000.0, 25160000.0, 26625229.79, 26625229.79, 26625229.79], "gastosOpObra": [15332976.966566661, 15332976.966566661, 15332976.966566661, 26078118.405039996, 15332976.966566661, 15428959.931739075, 15428959.931739075], "proyectoEjecutivo": [7600000.0, 7600000.0, 7600000.0, 16000000.0, 7600000.0, 7600000.0, 7600000.0], "activosFijos": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "legal": [0.0, 0.0, 410610.1075921909, 410610.1075921909, 410610.1075921909, 410610.1075921909, 410610.1075921909], "sat": [0.0, 0.0, 5813565.542299353, 5589390.54229935, 5813565.542299353, 5813565.542299353, 5815198.542299353], "publicidad": [13282006.1712, 13799199.368832726, 13819055.971846651, 13819985.196023997, 13832800.309502093, 13861954.834123997, 13921581.899423998], "comisionComercializacion": [66410030.856, 68995996.84416363, 69095279.85923326, 71482682.04839998, 69164001.54751046, 69309774.17062, 69607909.49712], "interesesBX": [96000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0], "comisionAperturaBX": [6305000.000000001, 6305000.000000001, 6305000.000000001, 6500000.0, 6305000.000000001, 6305000.000000001, 6305000.000000001], "otrosGastosFin": [19777948.847179748, 19777948.847179748, 19777948.847179748, 19374290.355791748, 19777948.847179748, 19777948.847179748, 19777995.247179747], "adelantoEtapa2": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "equipamiento": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "aniosProy": [6, 6, 6, 6, 6, 6, 6], "tierraBase": [59560626.94958785, 59560626.94958785, 59560626.94958785, 59560626.94958785, 59560626.94958785, 59560626.94958785, 59560626.94958785]}}, "e2": {"scenarios": ["Base Mar 2025", "Nov 2025", "Ene 2026", "Mar 2026", "Jun 2026", "Jul 2026"], "data": {"ingresos": [1578028908.2, 1851418162.0, 1862165054.7506359, 1871609102.0, 1929385893.0, 1932146244.0], "costoObra": [661414279.2765551, 694362193.71, 694362193.71, 741402268.0, 741402268.0, 749402268.0], "gestionLicencias": [80000000.0, 118502310.57000001, 118502310.57000001, 118502310.57000001, 118502310.57000001, 118502310.57000001], "contratistaGeneral": [79044056.39608039, 82866014.47036, 82866014.47036, 92711207.01003999, 92711207.01003999, 92711207.01003999], "indirectoCorp": [23149499.77467943, 24302676.779850002, 24302676.779850002, 28242068.03, 26242068.03, 28242068.03], "gastosOpObra": [8598385.630595217, 16850744.402843226, 16850744.402843226, 17934956.43, 17934956.43, 17934956.43], "proyectoEjecutivo": [7000000.0, 10683741.38811724, 10683741.38811724, 10683741.38811724, 10683741.38811724, 10683741.38811724], "activosFijos": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "legal": [0.0, 0.0, 482273.1924078091, 482273.1924078091, 482273.1924078091, 482273.1924078091], "sat": [0.0, 0.0, 0.0, 6785074.45770065, 7623487.457700649, 7623487.457700649], "publicidad": [18305135.33512, 21476450.679199997, 21601114.635107376, 21710665.5832, 22380876.358799998, 22412896.4304], "comisionComercializacion": [91525676.6756, 107382253.396, 108005573.17553687, 108553327.916, 111904381.79399998, 112064482.152], "interesesBX": [110000000.0, 110000000.0, 110000000.0, 110000000.0, 110000000.0, 110000000.0], "comisionAperturaBX": [0.0, 0.0, 9860081.204, 9860081.204, 9860081.204, 9860081.204], "otrosGastosFin": [0.0, 0.0, 7320878.8204, 7320878.8204, 7320878.8204, 7320878.8204], "adelantoEtapa2": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "equipamiento": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "aniosProy": [9, 9, 9, 9, 9, 9], "tierraBase": [69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214, 69955642.03041214]}}, "cons": {"scenarios": ["Ago 2026 final"], "data": {"ingresos": [3132282614.64], "costoObra": [1460064349.53], "gestionLicencias": [168240466.74819335], "contratistaGeneral": [180859700.51090392], "indirectoCorp": [54867297.82], "gastosOpObra": [33363916.361739077], "proyectoEjecutivo": [18283741.38811724], "activosFijos": [0.0], "legal": [892883.3], "sat": [13438686.000000002], "publicidad": [36334478.329824], "comisionComercializacion": [181672391.64911997], "interesesBX": [214000000.0], "comisionAperturaBX": [16165081.204], "otrosGastosFin": [27098874.067579746], "adelantoEtapa2": [0.0], "equipamiento": [0.0], "aniosProy": [9], "tierraBase": [129516268.97999999]}}, "logrado": {"e1": {"jul": {"logrado": {"ingresos": 1080957539.0, "costoObra": 662212244.39, "gestionLicencias": 49738156.17819335, "contratistaGeneral": 78932921.2164001, "indirectoCorp": 21924264.437155116, "gastosOpObra": 15428959.931739075, "proyectoEjecutivo": 7545754.365034394, "activosFijos": 5771353.5604, "legal": 410610.1075921909, "sat": 5815198.542299353, "publicidad": 18202145.0504463, "comisionComercializacion": 33443631.231835388, "interesesBX": 99828523.24, "comisionAperturaBX": 6305000.000000001, "otrosGastosFin": 19777995.247179747, "adelantoEtapa2": 0.0, "equipamiento": 0.0, "utilidadNeta": 55620781.50172497}, "porLograr": {"ingresos": 119178831.63999987, "costoObra": 48449837.139999986, "gestionLicencias": 0.0, "contratistaGeneral": 9215572.284463838, "indirectoCorp": 4700965.352844883, "gastosOpObra": 0.0, "proyectoEjecutivo": 54245.634965606034, "activosFijos": 0.0, "legal": 0.0, "sat": 0.0, "publicidad": -4280563.151022304, "comisionComercializacion": 36164278.265284605, "interesesBX": 4171476.7600000054, "comisionAperturaBX": 0.0, "otrosGastosFin": 0.0, "adelantoEtapa2": 0.0, "equipamiento": 0.0, "utilidadNeta": 26474372.913863286}}}, "e2": {"jul": {"logrado": {"ingresos": 421726324.36, "costoObra": 165800036.2762569, "gestionLicencias": 56206372.90113465, "contratistaGeneral": 5824798.93, "indirectoCorp": 21864407.08200329, "gastosOpObra": 3798352.3320333324, "proyectoEjecutivo": 10792832.837651815, "activosFijos": 0.0, "legal": 482273.1924078091, "sat": 7623487.457700649, "publicidad": 14823802.14943769, "comisionComercializacion": 17032974.94225252, "interesesBX": 18490876.42, "comisionAperturaBX": 9860081.204, "otrosGastosFin": 7320878.8204, "adelantoEtapa2": 0.0, "equipamiento": 0.0, "utilidadNeta": 81805149.81472136}, "porLograr": {"ingresos": 1510419919.6399999, "costoObra": 583602231.7237431, "gestionLicencias": 62295937.66886536, "contratistaGeneral": 86886408.08003998, "indirectoCorp": 6377660.9479967095, "gastosOpObra": 14136604.097966667, "proyectoEjecutivo": -109091.44953457452, "activosFijos": 0.0, "legal": 0.0, "sat": 0.0, "publicidad": 7589094.280962309, "comisionComercializacion": 95031507.20974748, "interesesBX": 91509123.58, "comisionAperturaBX": 0.0, "otrosGastosFin": 0.0, "adelantoEtapa2": 0.0, "equipamiento": 0.0, "utilidadNeta": 563100443.5002128}}}}, "refExcel": {"base": {"e1": 82095154.41558826, "mult": 0.336624716254235, "tir": 0.056104119375705835, "cons": 727000747.7305225, "consMult": 2.98100931977704}, "rhl": {"e1": 14534527.466000408}}};
 
 let supa = null;
 const supaOk = SUPA_URL && SUPA_URL.indexOf('<') === -1;
@@ -522,6 +558,86 @@ function recalculate(tabKey) {
   }
 }
 
+
+
+/* ===== GATE DE LOGIN ===== */
+function mostrarGate(msg){
+  document.getElementById('gate')?.classList.remove('oculto');
+  const e=document.getElementById('gate-err');
+  if(e){ e.textContent = msg||''; e.classList.toggle('on', !!msg); }
+}
+function ocultarGate(){ document.getElementById('gate')?.classList.add('oculto'); }
+
+async function entrar(){
+  const mail=(document.getElementById('gate-mail')?.value||'').trim();
+  const pass=document.getElementById('gate-pass')?.value||'';
+  if(!mail||!pass){ mostrarGate('Captura correo y contrasena.'); return; }
+  if(!supa){ mostrarGate('No hay conexion con el servidor.'); return; }
+  const {data,error}=await supa.auth.signInWithPassword({email:mail,password:pass});
+  if(error){ mostrarGate('Correo o contrasena incorrectos.'); return; }
+  userSession=data.session;
+  await arrancarSesion();
+}
+
+async function arrancarSesion(){
+  await checkAdminRole();
+  await loadActiveVersion();
+  await cargarCortes();
+  await loadVersionHistory();
+  if(!currentData.palancas) currentData.palancas = JSON.parse(JSON.stringify(PAL_DEFAULT));
+  recalculate('e1'); recalculate('e2'); recalculate('cons');
+  fijarRefConsolidado();
+  pintarBannerCorte();
+  pintarPalancas();
+  renderAll();
+  ocultarGate();
+}
+
+async function salir(){
+  if(supa) await supa.auth.signOut();
+  userSession=null; isAdmin=false; versionHistory=[];
+  location.reload();
+}
+
+/* ===== VERSION ACTIVA: obtener o crear =====
+   Sin este upsert, el primer guardado falla con
+   "Cannot coerce the result to a single JSON object" porque no hay fila. */
+async function obtenerOCrearVersion(){
+  if(!supa || !isAdmin) return null;
+  const {data:rows, error} = await supa.from('cierre_versiones')
+    .select('id,data').eq('dashboard_id',DASHBOARD_ID).eq('is_active',true).limit(1);
+  if(error){ console.warn(error); return null; }
+  if(rows && rows.length) return rows[0];
+
+  // Primera vez: sembramos la version con lo que trae el HTML
+  const semilla = JSON.parse(JSON.stringify(currentData));
+  const {data:nueva, error:e2} = await supa.from('cierre_versiones').insert({
+    dashboard_id: DASHBOARD_ID,
+    version_label: currentData.criterioCorte || 'Version inicial',
+    fecha_corte:   currentData.fechaCorte || new Date().toISOString().slice(0,10),
+    uploaded_by:   userSession?.user?.email || 'admin',
+    data:          semilla,
+    nota:          'Siembra automatica desde el HTML publicado'
+  }).select('id,data').limit(1);
+  if(e2){ console.warn(e2); return null; }
+  await cargarCortes();
+  return nueva && nueva[0] ? nueva[0] : null;
+}
+
+async function bitacora(pagina, tipo, key, antes, despues, escenario, motivo){
+  if(!supa || !isAdmin) return;
+  try{
+    await supa.from('ediciones').insert({
+      editado_por: userSession?.user?.email || 'admin',
+      pagina, campo_tipo: tipo, campo_key: key,
+      escenario: escenario || null,
+      valor_antes: antes==null?null:String(antes),
+      valor_despues: despues==null?null:String(despues),
+      motivo: motivo || null
+    });
+  }catch(e){ console.warn('bitacora:',e); }
+}
+
 /* ===== PALANCAS ===== */
 const PAL_DEFAULT = JSON.parse(JSON.stringify(
   (typeof EMBEDDED_DATA !== 'undefined' && EMBEDDED_DATA.palancas) || {}));
@@ -619,24 +735,19 @@ function fijarRefConsolidado(){
 
 async function guardarPalancas(){
   if(!supa || !isAdmin) return;
-  try{
-    const {data:ver} = await supa.from('cierre_versiones')
-      .select('id,data').eq('dashboard_id',DASHBOARD_ID).eq('is_active',true).single();
-    if(!ver) return;
-    const nd = {...ver.data, palancas: currentData.palancas};
-    await supa.from('cierre_versiones').update({data:nd}).eq('id',ver.id);
-    await supa.from('ediciones').insert({
-      editado_por: userSession?.user?.email || 'admin',
-      pagina:'palancas', campo_tipo:'configuracion', campo_key:'palancas',
-      valor_antes: JSON.stringify(PAL_DEFAULT),
-      valor_despues: JSON.stringify(currentData.palancas),
-      motivo:'Cambio de default de supuestos'
-    });
-    Object.assign(PAL_DEFAULT, JSON.parse(JSON.stringify(currentData.palancas)));
-    pintarPalancas();
-    alert('Configuracion guardada como default.');
-  }catch(e){ console.warn(e); alert('No se pudo guardar: '+e.message); }
+  const ver = await obtenerOCrearVersion();
+  if(!ver){ alert('No se pudo acceder a la version. Revisa tu sesion.'); return; }
+  const nd = {...ver.data, palancas: currentData.palancas};
+  const {error} = await supa.from('cierre_versiones').update({data:nd}).eq('id',ver.id);
+  if(error){ alert('No se pudo guardar: '+error.message); return; }
+  await bitacora('palancas','configuracion','palancas',
+                 JSON.stringify(PAL_DEFAULT), JSON.stringify(currentData.palancas),
+                 null, 'Cambio de default de supuestos');
+  Object.assign(PAL_DEFAULT, JSON.parse(JSON.stringify(currentData.palancas)));
+  pintarPalancas();
+  alert('Configuracion guardada como default.');
 }
+
 
 /* ===== PAGINA 4: BREAKDOWN HC/SC  (bloque 4) ===== */
 function renderBreakdown(){
@@ -819,12 +930,21 @@ function renderTab(id, tabData, logradoData) {
       if(!logradoData[mes]) continue;
       const lg=logradoData[mes].logrado, pl=logradoData[mes].porLograr;
       const label=mes==='jun'?'Junio 2026':'Julio 2026';
-      const mets=[{k:'ingresos',l:'Ingresos'},{k:'utilidadNeta',l:'Utilidad Neta'},{k:'costoObra',l:'Costo Obra'}];
+      const mets=[{k:'ingresos',l:'Ingresos',src:'ingresos'},
+                  {k:'utilidadNeta',l:'Utilidad Neta',src:'utilidadNeta'},
+                  {k:'costoObra',l:'Costo Obra',src:'sumaHC'}];
       logradoHtml+=`<div><h3 style="font-size:14px;margin:0 0 12px;">${label}</h3>`;
       for(const m of mets){
-        const tot=(lg[m.k]||0)+(pl[m.k]||0), pct=tot?Math.max(0,Math.min(100,((lg[m.k]||0)/tot)*100)):0;
+        /* La expectativa sale del P&L recalculado, no del dato fijo del Excel:
+           asi sigue a las palancas. Lo logrado es un hecho y no se toca;
+           lo por lograr es la diferencia contra la expectativa vigente. */
+        const expect = d[m.src]?.[last];
+        const tot = (expect !== undefined) ? expect : ((lg[m.k]||0)+(pl[m.k]||0));
+        const logr = lg[m.k]||0;
+        const falta = tot - logr;
+        const pct=tot?Math.max(0,Math.min(100,(logr/tot)*100)):0;
         const col=m.k==='utilidadNeta'?'var(--brass)':'var(--olive)';
-        logradoHtml+=`<div class="logrado-bar-wrap"><div class="logrado-label"><span>${m.l}</span><span class="logrado-expect">Expectativa: ${fmtCur(tot)}</span></div><div class="logrado-track"><div class="logrado-fill" style="width:${pct.toFixed(1)}%;background:${col}">${pct.toFixed(0)}%</div></div><div class="logrado-values"><span>Logrado: ${fmtCur(lg[m.k])}</span><span>Por lograr: ${fmtCur(pl[m.k])}</span></div></div>`;
+        logradoHtml+=`<div class="logrado-bar-wrap"><div class="logrado-label"><span>${m.l}</span><span class="logrado-expect">Expectativa: ${fmtCur(tot)}</span></div><div class="logrado-track"><div class="logrado-fill" style="width:${pct.toFixed(1)}%;background:${col}">${pct.toFixed(0)}%</div></div><div class="logrado-values"><span>Logrado: ${fmtCur(logr)}</span><span>Por lograr: ${fmtCur(falta)}</span></div></div>`;
       }
       logradoHtml+='</div>';
     }
@@ -1036,20 +1156,19 @@ function activateInlineEditing(){
 }
 
 async function saveOneLabel(key, value){
-  if(!supa||!isAdmin||!key||!value) return;
-  if(!currentData.labels) currentData.labels={};
-  if(currentData.labels[key]===value) return;
-  currentData.labels[key]=value;
-  document.querySelectorAll(`td[data-rowkey="${key}"]`).forEach(td=>{ if(td.textContent.trim()!==value) td.textContent=value; });
-  try{
-    const{data:ver,error:fe}=await supa.from('cierre_versiones').select('id,data').eq('dashboard_id',DASHBOARD_ID).eq('is_active',true).single();
-    if(fe) return;
-    const newData={...ver.data,labels:currentData.labels};
-    await supa.from('cierre_versiones').update({data:newData}).eq('id',ver.id);
-  }catch(e){}
+  if(!supa || !isAdmin) return {error:'Sin permisos'};
+  const ver = await obtenerOCrearVersion();
+  if(!ver) return {error:'No se pudo acceder a la version'};
+  const antes = ver.data?.labels?.[key] || null;
+  const nd = {...ver.data, labels: {...(ver.data.labels||{}), [key]: value}};
+  const {error} = await supa.from('cierre_versiones').update({data:nd}).eq('id',ver.id);
+  if(error) return {error:error.message};
+  currentData.labels = nd.labels;
+  await bitacora('etiquetas','etiqueta',key,antes,value,null,null);
+  return {ok:true};
 }
 
-/* ===== NUMERIC EDITING ===== */
+
 function activateNumericEditing(){
   if(!puedeEditar()) return;
   document.querySelectorAll('td[data-num-key]').forEach(td=>{
@@ -1071,9 +1190,14 @@ function activateNumericEditing(){
       if(!isNaN(num)){
         const key=td.dataset.numKey, tabKey=td.dataset.tab, colIdx=parseInt(td.dataset.col);
         td.dataset.raw=num;
+        const antes = currentData[tabKey].data[key][colIdx];
         currentData[tabKey].data[key][colIdx]=num;
         recalculate(tabKey);
+        recalculate('cons');            // el consolidado se deriva de E1+E2
         updateTabDisplay(tabKey);
+        updateTabDisplay('cons');
+        const esc = currentData[tabKey].scenarios[colIdx];
+        bitacora(tabKey,'cifra',key,antes,num,esc,null);
         scheduleNumericSave(tabKey);
       }
     });
@@ -1144,15 +1268,16 @@ function scheduleNumericSave(tabKey){
 }
 
 async function saveNumericData(tabKey){
-  if(!supa||!isAdmin) return;
-  try{
-    const{data:ver,error:fe}=await supa.from('cierre_versiones').select('id,data').eq('dashboard_id',DASHBOARD_ID).eq('is_active',true).single();
-    if(fe) return;
-    const newData={...ver.data};
-    newData[tabKey]=currentData[tabKey];
-    await supa.from('cierre_versiones').update({data:newData}).eq('id',ver.id);
-    console.log('Datos guardados en Supabase');
-  }catch(e){ console.warn('Error al guardar cifras:', e); }
+  if(!supa || !isAdmin) return;
+  const ver = await obtenerOCrearVersion();
+  if(!ver){ setStatus('No se pudo guardar: revisa tu sesion.','err'); return; }
+  const nd = {...ver.data};
+  nd[tabKey] = currentData[tabKey];
+  nd.cons    = currentData.cons;      // el consolidado se deriva, hay que persistirlo
+  nd.palancas= currentData.palancas;
+  const {error} = await supa.from('cierre_versiones').update({data:nd}).eq('id',ver.id);
+  if(error){ console.warn(error); setStatus('Error al guardar: '+error.message,'err'); return; }
+  console.log('Cifras guardadas en Supabase');
 }
 
 /* ===== SUPABASE VERSIONES ===== */
@@ -1261,7 +1386,7 @@ function renderAdminPanel(){
 }
 
 async function handleActivate(verId){const res=await activateVersion(verId);if(res.error){alert('Error: '+res.error);return;}renderAdminPanel();}
-async function handleLogout(){await doLogout();renderAdminBody();}
+async function handleLogout(){await salir();}
 
 async function saveLabels(){
   if(!supa||!isAdmin)return;
@@ -1411,22 +1536,16 @@ async function handleUpload(){
 
 /* ===== INIT ===== */
 async function init(){
-  if(supa){
-    await loadActiveVersion();
-    await cargarCortes();
-    const{data:{session:s}}=await supa.auth.getSession();
-    userSession=s;if(userSession){await checkAdminRole();await loadVersionHistory();}
-  } else {
-    const cp=document.querySelector('.corte-picker');
-    if(cp) cp.style.display='none';   // sin Supabase no hay historia que consultar
+  if(!supa){
+    // Sin Supabase no hay forma de autenticar: no se muestra nada.
+    mostrarGate('Configuracion incompleta: no hay conexion con el servidor.');
+    return;
   }
-  pintarBannerCorte();
-  if(!currentData.palancas) currentData.palancas = JSON.parse(JSON.stringify(PAL_DEFAULT));
-  recalculate('e1'); recalculate('e2'); recalculate('cons');
-  fijarRefConsolidado();
-  pintarPalancas();
-  renderAll();
+  const {data:{session:s0}} = await supa.auth.getSession();
+  if(s0){ userSession=s0; await arrancarSesion(); }
+  else   { mostrarGate(''); }
 }
+
 init();
 </script>
 </body>
