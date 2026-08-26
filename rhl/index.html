@@ -36,6 +36,17 @@ header{background:var(--charcoal);color:var(--white);padding:22px 0 18px;}
 .admin-trigger{background:none;border:none;color:rgba(255,255,255,.15);cursor:pointer;font-size:14px;padding:2px 3px;line-height:1;transition:color .2s;margin-top:2px;}
 .admin-trigger:hover{color:rgba(255,255,255,.5);}
 
+.row-x{float:right;background:none;border:none;color:var(--border);cursor:pointer;
+  font-size:11px;line-height:1;padding:2px 4px;opacity:0;transition:all .15s;}
+tr:hover .row-x{opacity:1;color:var(--muted);}
+.row-x:hover{color:var(--error);}
+.chip-nueva{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  background:rgba(95,104,68,.14);color:var(--green);padding:1px 7px;border-radius:9px;margin-left:8px;}
+.add-partida{background:none;border:1px dashed var(--border);border-radius:8px;color:var(--muted);
+  cursor:pointer;font-size:12px;font-weight:600;padding:8px 16px;margin:12px 0 0;
+  font-family:'DM Sans',sans-serif;transition:all .15s;}
+.add-partida:hover{border-color:var(--olive);color:var(--olive);background:rgba(72,77,49,.04);}
+
 /* GATE DE LOGIN */
 #gate{position:fixed;inset:0;z-index:9000;background:var(--charcoal);
   display:flex;align-items:center;justify-content:center;padding:24px;}
@@ -424,8 +435,92 @@ const EDITABLE_KEYS = new Set([
 /* ===== FORMULA-DRIVEN (auto-calcula de ingresos) ===== */
 const FORMULA_DRIVEN = new Set(['publicidad','comisionComercializacion']);
 
+
+/* ===== PARTIDAS: agregar, quitar, restaurar =====
+   ROWS_BASE son las del Excel. currentData.extraRows guarda las que agregas,
+   currentData.hiddenRows las que quitas. Nada se borra del modelo: quitar es
+   ocultar, para que siempre se pueda volver atras. */
+function partidasOcultas(){ return new Set(currentData.hiddenRows || []); }
+function partidasExtra(){  return currentData.extraRows || []; }
+
+function construirROWS(){
+  const ocultas = partidasOcultas();
+  const extras  = partidasExtra();
+  const out = [];
+  for(const r of ROWS_BASE){
+    if(ocultas.has(r.key)) continue;
+    out.push(r);
+    // las partidas nuevas se insertan despues de su ancla
+    for(const e of extras){
+      if(e.despues === r.key && !ocultas.has(e.key)){
+        out.push({key:e.key, label:e.label, fmt:fmtFull, type:'data',
+                  isExpense:e.isExpense !== false, esNueva:true});
+      }
+    }
+  }
+  return out;
+}
+
+/* Alta de partida. Se crea con ceros en todos los escenarios y entra a la
+   cascada como cualquier otra: si es gasto operativo suma al total. */
+function agregarPartida(){
+  if(!puedeEditar()){ alert('Solo el admin puede agregar partidas.'); return; }
+  const label = prompt('Nombre de la partida nueva:');
+  if(!label || !label.trim()) return;
+  const grupo = prompt(
+    'A que grupo pertenece?\n\n'+
+    '1 = Gastos Operativos (SC 1)\n'+
+    '2 = Gastos de Comercializacion (SC 2)\n'+
+    '3 = Gastos Financieros (SC 3)\n\n'+
+    'Escribe 1, 2 o 3:', '1');
+  const ANCLA = {'1':'sat', '2':'comisionComercializacion', '3':'otrosGastosFin'};
+  const GRUPO = {'1':'operativos', '2':'comercializacion', '3':'financieros'};
+  const g = ANCLA[grupo] ? grupo : '1';
+  const key = 'x_' + label.trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').slice(0,28)
+            + '_' + Math.floor(Math.random()*9000+1000);
+  currentData.extraRows = currentData.extraRows || [];
+  currentData.extraRows.push({key, label:label.trim(), despues:ANCLA[g],
+                              grupo:GRUPO[g], isExpense:true});
+  // arranca en cero en todos los escenarios de las tres pestanas
+  ['e1','e2','cons'].forEach(t=>{
+    if(!currentData[t]) return;
+    currentData[t].data[key] = currentData[t].scenarios.map(()=>0);
+  });
+  EDITABLE_KEYS.add(key);
+  bitacora('partidas','estructura',key,null,label.trim(),null,'Alta de partida');
+  aplicarPalancas();
+}
+
+function quitarPartida(key, label){
+  if(!puedeEditar()){ alert('Solo el admin puede quitar partidas.'); return; }
+  if(!confirm(`Quitar "${label}" de la vista?\n\nNo se borra el dato: se puede restaurar desde el panel de administracion.`)) return;
+  currentData.hiddenRows = currentData.hiddenRows || [];
+  if(!currentData.hiddenRows.includes(key)) currentData.hiddenRows.push(key);
+  bitacora('partidas','estructura',key,label,'(oculta)',null,'Partida quitada de la vista');
+  aplicarPalancas();
+}
+
+function restaurarPartida(key){
+  currentData.hiddenRows = (currentData.hiddenRows||[]).filter(k=>k!==key);
+  bitacora('partidas','estructura',key,'(oculta)','(visible)',null,'Partida restaurada');
+  aplicarPalancas();
+  renderAdminBody();
+}
+
+async function guardarEstructura(){
+  if(!supa || !isAdmin) return;
+  const ver = await obtenerOCrearVersion();
+  if(!ver){ alert('No se pudo guardar.'); return; }
+  const nd = {...ver.data,
+    extraRows: currentData.extraRows || [],
+    hiddenRows: currentData.hiddenRows || [],
+    e1: currentData.e1, e2: currentData.e2, cons: currentData.cons};
+  const {error} = await supa.from('cierre_versiones').update({data:nd}).eq('id',ver.id);
+  alert(error ? ('No se pudo guardar: '+error.message) : 'Estructura de partidas guardada.');
+}
+
 /* ===== FILAS DE LA TABLA ===== */
-const ROWS = [
+const ROWS_BASE = [
   {key:'ingresos',                    label:'Ingreso por Ventas',               fmt:fmtFull, type:'data',       isExpense:false},
   {key:'costoObra',                   label:'Construccion (Hard Cost)',          fmt:fmtFull, type:'data',       isExpense:true},
   {key:'provision',                   label:'Contratos por cerrar',              fmt:fmtFull, type:'data',       isExpense:true, esProvision:true},
@@ -517,20 +612,28 @@ function recalculate(tabKey) {
     d.utilidadBruta[i] = (d.ingresos[i] || 0) - d.sumaHC[i];
 
     d.totalGastosOperativos = d.totalGastosOperativos || [];
+    /* Quitar una partida la saca de la suma, igual que borrar un renglon en Excel.
+       El dato no se pierde: sigue en el modelo y se puede restaurar. */
+    const ocultas = new Set(currentData.hiddenRows || []);
+    const viva = k => !ocultas.has(k);
+    const extraDe = g => (currentData.extraRows||[])
+        .filter(e => e.grupo===g && viva(e.key))
+        .reduce((a,e) => a + (d[e.key]?.[i] || 0), 0);
     d.totalGastosOperativos[i] = ['gestionLicencias','contratistaGeneral','indirectoCorp',
       'gastosOpObra','proyectoEjecutivo','activosFijos','legal','sat']
-      .reduce((s, k) => s + (d[k]?.[i] || 0), 0);
+      .filter(viva).reduce((s, k) => s + (d[k]?.[i] || 0), 0) + extraDe('operativos');
 
     d.totalGastosComercializacion = d.totalGastosComercializacion || [];
-    d.totalGastosComercializacion[i] = (d.publicidad[i]||0) + (d.comisionComercializacion[i]||0);
+    d.totalGastosComercializacion[i] = ['publicidad','comisionComercializacion']
+      .filter(viva).reduce((s,k)=>s+(d[k]?.[i]||0),0) + extraDe('comercializacion');
 
     d.utilidadOperativa = d.utilidadOperativa || [];
     d.utilidadOperativa[i] = d.utilidadBruta[i] - d.totalGastosOperativos[i]
                            - d.totalGastosComercializacion[i];
 
     d.totalGastosFinancieros = d.totalGastosFinancieros || [];
-    d.totalGastosFinancieros[i] = (d.interesesBX[i]||0) + (d.comisionAperturaBX[i]||0)
-                                + (d.otrosGastosFin[i]||0);
+    d.totalGastosFinancieros[i] = ['interesesBX','comisionAperturaBX','otrosGastosFin']
+      .filter(viva).reduce((s,k)=>s+(d[k]?.[i]||0),0) + extraDe('financieros');
 
     // --- PALANCA 1: la tierra entra al P&L solo bajo el criterio de gasto operativo
     const tierra = (P.tierra === 'gasto') ? (d.tierraBase?.[i] || 0) : 0;
@@ -970,6 +1073,7 @@ function renderTab(id, tabData, logradoData) {
 
   let curSec = null;
 
+  const ROWS = construirROWS();
   for(const row of ROWS){
     if(row.type==='section'){
       curSec=row.key;
@@ -992,7 +1096,10 @@ function renderTab(id, tabData, logradoData) {
     const lbl = currentData.labels?.[row.key] || row.label;
     const formulaDrivenNote = row.formulaDriven ? ' <span style="font-size:9px;opacity:.5;font-style:italic">fórmula</span>' : '';
     const chipEst = row.esProvision ? '<span class="chip-est">estimado</span>' : '';
-    tblHtml+=`<td data-rowkey="${row.key}">${lbl}${formulaDrivenNote}${chipEst}</td>`;
+    const chipNue = row.esNueva ? '<span class="chip-nueva">nueva</span>' : '';
+    const btnQuitar = (isAdmin && !enHistorico && row.type==='data' && !row.esProvision)
+      ? `<button class="row-x" title="Quitar partida" onclick="event.stopPropagation();quitarPartida('${row.key}',${JSON.stringify(lbl).replace(/"/g,'&quot;')})">&#10005;</button>` : '';
+    tblHtml+=`<td data-rowkey="${row.key}">${lbl}${formulaDrivenNote}${chipEst}${chipNue}${btnQuitar}</td>`;
 
     for(let i=0;i<scenarios.length;i++){
       const rawVal=d[row.key]?.[i];
@@ -1034,6 +1141,13 @@ function renderTab(id, tabData, logradoData) {
     }
   }
   tblHtml+='</tbody></table></div>';
+  if(isAdmin && !enHistorico){
+    const nOcultas=(currentData.hiddenRows||[]).length;
+    tblHtml+=`<button class="add-partida" onclick="agregarPartida()">+ Agregar partida</button>`;
+    if(nOcultas) tblHtml+=`<span style="font-size:12px;color:var(--muted);margin-left:14px">`
+      +`${nOcultas} partida${nOcultas>1?'s':''} oculta${nOcultas>1?'s':''} &mdash; `
+      +`<a href="#" onclick="openAdmin();return false;" style="color:var(--brass-dark);font-weight:600">restaurar</a></span>`;
+  }
 
   /* Vertientes (solo E1) */
   let vertientesHtml = '';
@@ -1237,7 +1351,7 @@ function updateTabDisplay(tabKey){
     if(!firstTd) return;
     const key = firstTd.dataset.rowkey;
     if(!key||key.startsWith('_')) return;
-    const row = ROWS.find(r=>r.key===key);
+    const row = construirROWS().find(r=>r.key===key);
     if(!row||!row.fmt) return;
     /* Update last column cell */
     const cells = tr.querySelectorAll('td');
@@ -1356,6 +1470,7 @@ async function handleLogin(){
 function buildLabelsFormHtml(){
   const labs=currentData.labels||{};
   let html='<div class="labels-editor">';
+  const ROWS = construirROWS();
   for(const row of ROWS){
     if(row.type==='section'){
       html+=`<span class="label-sec-hdr">${row.label}</span>`;
@@ -1373,14 +1488,45 @@ function buildLabelsFormHtml(){
   return html;
 }
 
+
+function buildPartidasHtml(){
+  const ocultas = currentData.hiddenRows || [];
+  const extras  = currentData.extraRows  || [];
+  if(!ocultas.length && !extras.length) return '';
+  let h = '<div class="modal-section"><h3>Partidas</h3>';
+  if(extras.length){
+    h += '<p style="font-size:12px;color:var(--muted);margin:0 0 8px">Agregadas por ti:</p>';
+    for(const e of extras){
+      const viva = !ocultas.includes(e.key);
+      h += `<div class="label-edit-row"><span class="label-default">${e.label}</span>`
+         + `<span style="font-size:11px;color:var(--muted)">${e.grupo}${viva?'':' &middot; oculta'}</span></div>`;
+    }
+  }
+  if(ocultas.length){
+    h += '<p style="font-size:12px;color:var(--muted);margin:12px 0 8px">Quitadas de la vista:</p>';
+    for(const k of ocultas){
+      const base = ROWS_BASE.find(r=>r.key===k) || extras.find(e=>e.key===k);
+      const lbl = (currentData.labels?.[k]) || base?.label || k;
+      h += `<div class="label-edit-row"><span class="label-default">${lbl}</span>`
+         + `<button class="btn" style="padding:3px 10px;font-size:11px" onclick="restaurarPartida('${k}')">Restaurar</button></div>`;
+    }
+  }
+  h += '<button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="guardarEstructura()">Guardar estructura de partidas</button>';
+  h += '</div>';
+  return h;
+}
+
 function renderAdminPanel(){
+  setTimeout(()=>{ const c=document.getElementById('up-corte');
+    if(c && !c.value) c.value=new Date().toISOString().slice(0,10); },0);
   const today=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
   const rows=versionHistory.map(v=>`<div class="ver-item${v.is_active?' active-ver':''}"><div class="ver-item-info"><div class="ver-item-label">${v.version_label}</div><div class="ver-item-meta">${fmtDate(v.uploaded_at)} &middot; ${v.uploaded_by}</div></div>${v.is_active?'<span class="badge-active">Activa</span>':`<button class="btn btn-ghost btn-sm" onclick="handleActivate('${v.id}')">Activar</button>`}</div>`).join('');
   document.getElementById('admin-body').innerHTML=`
     <div class="user-bar"><span class="user-email">${userSession.user.email}</span><button class="btn btn-danger btn-sm" onclick="handleLogout()">Cerrar sesion</button></div>
     <div class="modal-section"><h3>Historial</h3><div class="ver-list">${rows||'<p style="font-size:12px;color:var(--muted);margin:0">Sin versiones aun.</p>'}</div></div>
     <hr class="sep-line">
-    <div class="modal-section"><h3>Subir nueva version</h3><div class="form-group"><label>Etiqueta</label><input type="text" id="up-label" value="v5 &middot; ${today}"></div><div class="form-group"><label>Archivo Excel (.xlsx)</label><input type="file" id="up-file" accept=".xlsx,.xls"></div><button class="btn btn-primary" id="up-btn" onclick="handleUpload()" style="width:100%">Subir y activar</button><div class="status-msg" id="admin-status" style="display:none"></div></div>
+    ${buildPartidasHtml()}
+    <div class="modal-section"><h3>Subir nueva version</h3><div class="form-group"><label>Etiqueta</label><input type="text" id="up-label" value="v5 &middot; ${today}"></div><div class="form-group"><label>Fecha de corte del dato</label><input type="date" id="up-corte"><p style="font-size:11px;color:var(--muted);margin:5px 0 0">La fecha que representan las cifras, no la de hoy. Un Excel "a julio" lleva 31/07.</p></div><div class="form-group"><label>Archivo Excel (.xlsx)</label><input type="file" id="up-file" accept=".xlsx,.xls"></div><button class="btn btn-primary" id="up-btn" onclick="handleUpload()" style="width:100%">Subir y activar</button><div class="status-msg" id="admin-status" style="display:none"></div></div>
     <hr class="sep-line">
     <div class="modal-section"><h3>Editar conceptos</h3><p style="font-size:11px;color:var(--muted);margin:0 0 10px">Nombre de cada fila. Los cambios se guardan en Supabase.</p>${buildLabelsFormHtml()}<button class="btn btn-primary" id="save-labels-btn" onclick="saveLabels()" style="width:100%;margin-top:10px">Guardar etiquetas</button></div>`;
 }
@@ -1516,6 +1662,7 @@ function parseExcelData(file){
 
 async function handleUpload(){
   const label=document.getElementById('up-label')?.value?.trim(),file=document.getElementById('up-file')?.files?.[0];
+  const corte=document.getElementById('up-corte')?.value || new Date().toISOString().slice(0,10);
   if(!label){setStatus('Escribe una etiqueta','err');return;}
   if(!file){setStatus('Selecciona un Excel','err');return;}
   const btn=document.getElementById('up-btn');btn.disabled=true;btn.textContent='Leyendo Excel...';setStatus('Procesando...','info');
@@ -1523,9 +1670,18 @@ async function handleUpload(){
     const parsed=await parseExcelData(file);
     btn.textContent='Subiendo...';setStatus('Guardando en Supabase...','info');
     if(currentData.labels) parsed.labels=currentData.labels;
-    const{error}=await supa.from('cierre_versiones').insert({dashboard_id:DASHBOARD_ID,version_label:label,uploaded_by:userSession.user.email,data:parsed,is_active:true});
+    parsed.palancas = parsed.palancas || currentData.palancas;
+    parsed.equityTotal = parsed.equityTotal || currentData.equityTotal;
+    const{error}=await supa.from('cierre_versiones').insert({
+      dashboard_id:DASHBOARD_ID, version_label:label,
+      fecha_corte:corte,                       // era NOT NULL: sin esto el insert truena
+      uploaded_by:userSession.user.email, data:parsed, is_active:true});
     if(error)throw new Error(error.message);
-    currentData=parsed;activeVerId=null;usingLive=true;renderAll();
+    currentData=parsed;activeVerId=null;usingLive=true;
+    if(!currentData.palancas) currentData.palancas=JSON.parse(JSON.stringify(PAL_DEFAULT));
+    recalculate('e1');recalculate('e2');recalculate('cons');
+    fijarRefConsolidado(); pintarPalancas(); renderAll();
+    await cargarCortes();
     document.getElementById('ver-indicator').textContent=label;
     document.getElementById('ver-live').style.display='block';
     await loadVersionHistory();setStatus('Version "'+label+'" subida y activada.','ok');
