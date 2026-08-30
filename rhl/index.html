@@ -712,6 +712,23 @@ function rellenarFaltantes(destino, base){
   ['equityTotal','palancas','criterioCorte','fechaCorte'].forEach(k=>{
     if(destino[k] === undefined && base[k] !== undefined) destino[k] = base[k];
   });
+  /* Backfill de logrado: si Supabase no tiene absorcion, usar la de EMBEDDED_DATA */
+  if(base.logrado){
+    if(!destino.logrado) destino.logrado = JSON.parse(JSON.stringify(base.logrado));
+    else {
+      ['e1','e2'].forEach(etapa=>{
+        if(!base.logrado[etapa]) return;
+        if(!destino.logrado[etapa]){ destino.logrado[etapa] = JSON.parse(JSON.stringify(base.logrado[etapa])); return; }
+        Object.keys(base.logrado[etapa]).forEach(mes=>{
+          if(!destino.logrado[etapa][mes]){ destino.logrado[etapa][mes] = JSON.parse(JSON.stringify(base.logrado[etapa][mes])); return; }
+          if(!destino.logrado[etapa][mes].absorcion && base.logrado[etapa][mes].absorcion){
+            destino.logrado[etapa][mes].absorcion = JSON.parse(JSON.stringify(base.logrado[etapa][mes].absorcion));
+            faltantesRellenados.push(`logrado.${etapa}.${mes}.absorcion`);
+          }
+        });
+      });
+    }
+  }
   return destino;
 }
 let faltantesRellenados = [];
