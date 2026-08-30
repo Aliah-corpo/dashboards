@@ -371,15 +371,15 @@ table.data.hide-col-6 tr>:nth-child(8){display:none;}
   </div>
   <div class="valida" id="valida-cons"></div>
   <div class="tabs" id="pagenav">
-    <button class="tab active" data-tab="e1">Etapa 1</button>
+    <button class="tab active" data-tab="cons">Consolidado</button>
+    <button class="tab" data-tab="e1">Etapa 1</button>
     <button class="tab" data-tab="e2">Etapa 2</button>
-    <button class="tab" data-tab="cons">Consolidado</button>
     <button class="tab" data-tab="breakdown">Breakdown HC/SC</button>
     <button class="tab" data-tab="absorcion">Absorcion y Flujos</button>
   </div>
-  <div class="tab-content active" id="panel-e1"></div>
+  <div class="tab-content active" id="panel-cons"></div>
+  <div class="tab-content" id="panel-e1"></div>
   <div class="tab-content" id="panel-e2"></div>
-  <div class="tab-content" id="panel-cons"></div>
   <div class="tab-content" id="panel-breakdown"></div>
   <div class="tab-content" id="panel-absorcion"></div>
 </div>
@@ -1065,10 +1065,40 @@ let charts = {};
 function renderAll() {
   renderTab('e1',   currentData.e1,   currentData.logrado?.e1);
   renderTab('e2',   currentData.e2,   currentData.logrado?.e2);
-  renderTab('cons', currentData.cons, null);
+  /* Consolidado: construir logrado sumando E1 + E2 */
+  const consLogrado = buildConsLogrado();
+  renderTab('cons', currentData.cons, consLogrado);
   renderBreakdown();
   renderAbsorcion();
   if(isAdmin) { activateInlineEditing(); activateNumericEditing(); }
+}
+
+function buildConsLogrado(){
+  const le1 = currentData.logrado?.e1;
+  const le2 = currentData.logrado?.e2;
+  if(!le1 && !le2) return null;
+  const result = {};
+  for(const mes of ['jun','jul']){
+    const a = le1?.[mes], b = le2?.[mes];
+    if(!a && !b) continue;
+    const lg = {}, pl = {};
+    const keys = new Set([
+      ...Object.keys(a?.logrado||{}),
+      ...Object.keys(b?.logrado||{})
+    ]);
+    keys.forEach(k => {
+      lg[k] = (a?.logrado?.[k]||0) + (b?.logrado?.[k]||0);
+      pl[k] = (a?.porLograr?.[k]||0) + (b?.porLograr?.[k]||0);
+    });
+    /* Absorcion consolidada: concatenar torres de ambas etapas */
+    let absConsolidada = null;
+    const absA = a?.absorcion, absB = b?.absorcion;
+    if(absA || absB){
+      absConsolidada = { torres: [...(absA?.torres||[]), ...(absB?.torres||[])] };
+    }
+    result[mes] = { logrado: lg, porLograr: pl, absorcion: absConsolidada };
+  }
+  return Object.keys(result).length ? result : null;
 }
 
 function renderTab(id, tabData, logradoData) {
@@ -1110,9 +1140,11 @@ function renderTab(id, tabData, logradoData) {
     for(const mes of ['jun','jul']){
       if(!logradoData[mes]) continue;
       const lg=logradoData[mes].logrado, pl=logradoData[mes].porLograr;
+      const abs=logradoData[mes].absorcion;
       const label=mes==='jun'?'Junio 2026':'Julio 2026';
+      const uid = id+'_'+mes; // unique id for toggles
 
-      /* Helper: una barra con total encima, no colapsable */
+      /* Helper: barra con total encima */
       function barra(lbl, logrado, expectativa, color, height, fontSz){
         const h = height || 26, fs = fontSz || 13;
         const falta = expectativa - logrado;
@@ -1132,35 +1164,74 @@ function renderTab(id, tabData, logradoData) {
         </div>`;
       }
 
-      /* Expectativas del P&L recalculado (siguen las palancas) */
+      /* Expectativas del P&L recalculado */
       const expIngresos = d.ingresos?.[last] || ((lg.ingresos||0)+(pl.ingresos||0));
       const expHC       = d.sumaHC?.[last]   || ((lg.costoObra||0)+(pl.costoObra||0));
       const expSC1      = d.totalGastosOperativos?.[last] || 0;
       const expSC2      = d.totalGastosComercializacion?.[last] || 0;
       const expSC3      = d.totalGastosFinancieros?.[last] || 0;
       const expSC       = expSC1 + expSC2 + expSC3;
-      const expUtil     = d.utilidadNeta?.[last] || ((lg.utilidadNeta||0)+(pl.utilidadNeta||0));
+      const expCostoTotal = expHC + expSC;
 
       /* Logrado de cada rubro */
       const lgIngresos = lg.ingresos||0;
-      const lgHC       = (lg.costoObra||0);
+      const lgHC       = lg.costoObra||0;
       const lgSC1      = (lg.gestionLicencias||0)+(lg.contratistaGeneral||0)+(lg.indirectoCorp||0)
                         +(lg.gastosOpObra||0)+(lg.proyectoEjecutivo||0)+(lg.activosFijos||0)
                         +(lg.legal||0)+(lg.sat||0);
       const lgSC2      = (lg.publicidad||0)+(lg.comisionComercializacion||0);
       const lgSC3      = (lg.interesesBX||0)+(lg.comisionAperturaBX||0)+(lg.otrosGastosFin||0);
       const lgSC       = lgSC1 + lgSC2 + lgSC3;
-      const lgUtil     = lg.utilidadNeta||0;
+      const lgCostoTotal = lgHC + lgSC;
 
       logradoHtml+=`<div style="margin-bottom:28px"><h3 style="font-size:14px;margin:0 0 14px;font-family:'Outfit',sans-serif">${label}</h3>`;
 
-      /* 1. Ingresos */
+      /* ——— 1. INGRESOS (colapsable: absorcion por torre) ——— */
+      logradoHtml += `<div style="cursor:pointer" onclick="document.getElementById('det-ing-${uid}').style.display=document.getElementById('det-ing-${uid}').style.display==='none'?'block':'none'">`;
       logradoHtml += barra('Ingresos', lgIngresos, expIngresos, 'var(--olive)', 28, 13);
+      logradoHtml += `</div>`;
+      /* Detalle colapsado: tabla de absorcion por torre */
+      const torresData = abs?.torres || [];
+      let torresHtml = '';
+      if(torresData.length || puedeEditar()){
+        const TORRES_DEFAULT = id==='e1' ? ['A','B','C'] : id==='e2' ? ['D','E'] : ['A','B','C','D','E'];
+        const torres = torresData.length ? torresData : TORRES_DEFAULT.map(t=>({torre:t,valorProyecto:0,cobrado:0,porCobrarTiempo:0,vencido:0,porLograr:0}));
+        torresHtml = `<table style="width:100%;border-collapse:collapse;font-size:12px;margin:6px 0 10px">
+          <tr style="background:var(--charcoal);color:#fff">
+            <th style="text-align:left;padding:6px 10px;font-size:11px">Torre</th>
+            <th style="text-align:right;padding:6px 10px;font-size:11px">Valor Proyecto</th>
+            <th style="text-align:right;padding:6px 10px;font-size:11px">Cobrado</th>
+            <th style="text-align:right;padding:6px 10px;font-size:11px">Por Cobrar Tiempo</th>
+            <th style="text-align:right;padding:6px 10px;font-size:11px">Vencido</th>
+            <th style="text-align:right;padding:6px 10px;font-size:11px">Por Lograr</th>
+          </tr>`;
+        for(const t of torres){
+          const editable = puedeEditar() ? ' contenteditable="true" style="text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);cursor:text;outline:none" onblur="saveAbsTorre(this,\''+id+'\',\''+mes+'\',\''+t.torre+'\')"' : ' style="text-align:right;padding:6px 10px;border-bottom:1px solid var(--border)"';
+          torresHtml += `<tr>
+            <td style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);font-weight:600">Torre ${t.torre}</td>
+            <td data-abs-field="valorProyecto"${editable}>${fmtFull(t.valorProyecto)}</td>
+            <td data-abs-field="cobrado"${editable}>${fmtFull(t.cobrado)}</td>
+            <td data-abs-field="porCobrarTiempo"${editable}>${fmtFull(t.porCobrarTiempo)}</td>
+            <td data-abs-field="vencido"${editable}>${fmtFull(t.vencido)}</td>
+            <td data-abs-field="porLograr"${editable}>${fmtFull(t.porLograr)}</td>
+          </tr>`;
+        }
+        torresHtml += '</table>';
+      }
+      logradoHtml += `<div id="det-ing-${uid}" style="display:none;padding-left:18px;border-left:2px solid var(--border);margin-left:4px">${torresHtml}</div>`;
 
-      /* 2. Hard Cost */
+      /* ——— 2. HARD COST (colapsable) ——— */
+      logradoHtml += `<div style="cursor:pointer" onclick="document.getElementById('det-hc-${uid}').style.display=document.getElementById('det-hc-${uid}').style.display==='none'?'block':'none'">`;
       logradoHtml += barra('Hard Cost', lgHC, expHC, 'var(--charcoal)', 28, 13);
+      logradoHtml += `</div>`;
+      logradoHtml += `<div id="det-hc-${uid}" style="display:none;padding-left:18px;border-left:2px solid var(--border);margin-left:4px">
+        <div style="font-size:12px;color:var(--muted);padding:8px 0">
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>Construccion</span><span style="font-weight:600">${fmtCur(lg.costoObra||0)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span>Contratos por cerrar</span><span style="font-weight:600">${fmtCur(d.cpc?.[last]||0)}</span></div>
+        </div>
+      </div>`;
 
-      /* 3. Soft Cost — barra grande + 3 sub-barras delgadas */
+      /* ——— 3. SOFT COST + sub-barras (siempre visibles) ——— */
       logradoHtml += barra('Soft Cost', lgSC, expSC, 'var(--green)', 28, 13);
       logradoHtml += `<div style="padding-left:18px;border-left:2px solid var(--border);margin-left:4px">`;
       logradoHtml += barra('Gastos Operativos (SC1)', lgSC1, expSC1, 'var(--sage)', 14, 11);
@@ -1168,8 +1239,68 @@ function renderTab(id, tabData, logradoData) {
       logradoHtml += barra('Gastos Financieros (SC3)', lgSC3, expSC3, 'var(--sage)', 14, 11);
       logradoHtml += `</div>`;
 
-      /* 4. Utilidad Neta */
-      logradoHtml += barra('Utilidad Neta', lgUtil, expUtil, 'var(--brass)', 28, 13);
+      /* ——— TERMOMETRO DE RIESGO ——— */
+      /* Criterio 1: Convergencia — % de costo total ya ejercido */
+      const pctConvergencia = expCostoTotal ? Math.min(100, (lgCostoTotal / expCostoTotal) * 100) : 0;
+      const pctPendiente = 100 - pctConvergencia;
+
+      /* Criterio 2: Volatilidad — desviacion entre escenarios historicos */
+      const utilSeries = d.utilidadNeta || [];
+      let volPct = 0, rangoMin = 0, rangoMax = 0;
+      if(utilSeries.length > 2){
+        const cambios = [];
+        for(let j=1;j<utilSeries.length;j++){
+          if(utilSeries[j-1] && utilSeries[j-1]!==0)
+            cambios.push(Math.abs((utilSeries[j]-utilSeries[j-1])/utilSeries[j-1])*100);
+        }
+        volPct = cambios.length ? cambios.reduce((a,b)=>a+b,0)/cambios.length : 0;
+        const utilActual = utilSeries[utilSeries.length-1]||0;
+        rangoMin = utilActual * (1 - volPct/100);
+        rangoMax = utilActual * (1 + volPct/100);
+      }
+
+      /* Criterio 3: Tendencia costos — % aumento mensual promedio del costo pendiente */
+      const costoSeries = (d.costoObra||[]).map((v,j)=>
+        (v||0) + (d.totalGastosOperativos?.[j]||0) + (d.totalGastosComercializacion?.[j]||0) + (d.totalGastosFinancieros?.[j]||0));
+      let tendPct = 0, utilAjustada = 0;
+      if(costoSeries.length > 2){
+        const cambiosCosto = [];
+        for(let j=1;j<costoSeries.length;j++){
+          if(costoSeries[j-1] && costoSeries[j-1]!==0)
+            cambiosCosto.push(((costoSeries[j]-costoSeries[j-1])/costoSeries[j-1])*100);
+        }
+        tendPct = cambiosCosto.length ? cambiosCosto.reduce((a,b)=>a+b,0)/cambiosCosto.length : 0;
+        const pendiente = expCostoTotal - lgCostoTotal;
+        const costoAjustado = lgCostoTotal + pendiente * (1 + tendPct/100);
+        utilAjustada = (d.ingresos?.[last]||0) - costoAjustado - (d.totalCostoTierra?.[last]||0);
+      }
+
+      const utilActual = d.utilidadNeta?.[last]||0;
+
+      logradoHtml += `
+      <div style="margin-top:20px;padding:16px 20px;background:rgba(72,77,49,.04);border:1px solid var(--border);border-radius:12px">
+        <p style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--olive);margin:0 0 12px">Termometro de Riesgo — Utilidad Neta ${fmtCur(utilActual)}</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          <div style="padding:12px;background:var(--white);border-radius:8px;border:1px solid var(--border)">
+            <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 6px">Convergencia</p>
+            <p style="font-size:22px;font-weight:700;font-family:'Outfit',sans-serif;margin:0;color:var(--charcoal)">${pctConvergencia.toFixed(0)}%</p>
+            <p style="font-size:11px;color:var(--muted);margin:4px 0 0">del costo ya ejercido</p>
+            <p style="font-size:11px;color:var(--olive);font-weight:600;margin:4px 0 0">Solo ${pctPendiente.toFixed(1)}% puede desviarse</p>
+          </div>
+          <div style="padding:12px;background:var(--white);border-radius:8px;border:1px solid var(--border)">
+            <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 6px">Volatilidad historica</p>
+            <p style="font-size:22px;font-weight:700;font-family:'Outfit',sans-serif;margin:0;color:var(--charcoal)">${volPct>0?volPct.toFixed(0)+'%':'--'}</p>
+            <p style="font-size:11px;color:var(--muted);margin:4px 0 0">desviacion promedio entre cortes</p>
+            <p style="font-size:11px;color:var(--olive);font-weight:600;margin:4px 0 0">${volPct>0?'Rango: '+fmtCur(rangoMin)+' — '+fmtCur(rangoMax):'Sin datos suficientes'}</p>
+          </div>
+          <div style="padding:12px;background:var(--white);border-radius:8px;border:1px solid var(--border)">
+            <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 6px">Tendencia de costos</p>
+            <p style="font-size:22px;font-weight:700;font-family:'Outfit',sans-serif;margin:0;color:${tendPct>0?'var(--error)':'var(--green)'}">${tendPct!==0?(tendPct>0?'+':'')+tendPct.toFixed(1)+'%':'--'}</p>
+            <p style="font-size:11px;color:var(--muted);margin:4px 0 0">aumento mensual promedio</p>
+            <p style="font-size:11px;color:var(--olive);font-weight:600;margin:4px 0 0">${utilAjustada?'Si sigue: '+fmtCur(utilAjustada):'Sin datos suficientes'}</p>
+          </div>
+        </div>
+      </div>`;
 
       logradoHtml+='</div>';
     }
@@ -1511,9 +1642,31 @@ async function saveNumericData(tabKey){
   nd[tabKey] = currentData[tabKey];
   nd.cons    = currentData.cons;      // el consolidado se deriva, hay que persistirlo
   nd.palancas= currentData.palancas;
+  nd.logrado = currentData.logrado;   // absorcion por torre vive aqui
   const {error} = await supa.from('cierre_versiones').update({data:nd}).eq('id',ver.id);
   if(error){ console.warn(error); setStatus('Error al guardar: '+error.message,'err'); return; }
   console.log('Cifras guardadas en Supabase');
+}
+
+/* ===== ABSORCION POR TORRE: guardar edicion inline ===== */
+function saveAbsTorre(td, tabId, mes, torre){
+  if(!puedeEditar()) return;
+  const field = td.dataset.absField;
+  const raw = td.textContent.replace(/[$,\s()]/g,'');
+  const num = parseFloat(raw);
+  if(isNaN(num)){ td.textContent = '$0'; return; }
+  td.textContent = fmtFull(num);
+  // Guardar en currentData
+  if(!currentData.logrado) currentData.logrado = {};
+  if(!currentData.logrado[tabId]) currentData.logrado[tabId] = {};
+  if(!currentData.logrado[tabId][mes]) currentData.logrado[tabId][mes] = {logrado:{},porLograr:{},absorcion:{torres:[]}};
+  if(!currentData.logrado[tabId][mes].absorcion) currentData.logrado[tabId][mes].absorcion = {torres:[]};
+  const torres = currentData.logrado[tabId][mes].absorcion.torres;
+  let t = torres.find(x => x.torre === torre);
+  if(!t){ t = {torre, valorProyecto:0, cobrado:0, porCobrarTiempo:0, vencido:0, porLograr:0}; torres.push(t); }
+  t[field] = num;
+  bitacora('logrado','absorcion',`${tabId}.${mes}.${torre}.${field}`,null,num,null,'Edicion absorcion por torre');
+  scheduleNumericSave(tabId);
 }
 
 /* ===== SUPABASE VERSIONES ===== */
