@@ -1226,21 +1226,46 @@ function renderTab(id, tabData, logradoData) {
       logradoHtml += `<div style="cursor:pointer" onclick="document.getElementById('det-ing-${uid}').style.display=document.getElementById('det-ing-${uid}').style.display==='none'?'block':'none'">`;
       logradoHtml += barra('Ingresos', lgIngresos, expIngresos, 'var(--olive)', 28, 13);
       logradoHtml += `</div>`;
-      /* Detalle colapsado: tabla de absorcion por torre */
+      /* Totales de absorcion sobre la barra (siempre visible) */
       const torresData = abs?.torres || [];
+      if(torresData.length){
+        const absTot = torresData.reduce((a,t)=>({
+          vp:a.vp+(t.valorProyecto||0), co:a.co+(t.cobrado||0),
+          pc:a.pc+(t.porCobrarTiempo||0), ve:a.ve+(t.vencido||0), pl:a.pl+(t.porLograr||0)
+        }),{vp:0,co:0,pc:0,ve:0,pl:0});
+        logradoHtml += `<div style="display:flex;flex-wrap:wrap;gap:16px;font-size:11px;color:var(--muted);margin:-4px 0 6px;padding:0 2px">
+          <span>Valor Proyecto: <b style="color:var(--charcoal)">${fmtCur(absTot.vp)}</b></span>
+          <span>Cobrado: <b style="color:var(--charcoal)">${fmtCur(absTot.co)}</b></span>
+          <span>Por Cobrar: <b style="color:var(--charcoal)">${fmtCur(absTot.pc)}</b></span>
+          <span>Vencido: <b style="color:${absTot.ve>0?'var(--error)':'var(--charcoal)'}">${fmtCur(absTot.ve)}</b></span>
+          <span>Por Lograr: <b style="color:var(--charcoal)">${fmtCur(absTot.pl)}</b></span>
+          <span style="cursor:pointer;color:var(--brass-dark);font-weight:600" onclick="document.getElementById('det-ing-${uid}').style.display=document.getElementById('det-ing-${uid}').style.display==='none'?'block':'none'">&#9662; detalle por torre</span>
+        </div>`;
+      }
+      /* Detalle colapsado: tabla de absorcion por torre */
       let torresHtml = '';
       if(torresData.length || puedeEditar()){
         const TORRES_DEFAULT = id==='e1' ? ['A','B','C'] : id==='e2' ? ['D','E'] : ['A','B','C','D','E'];
         const torres = torresData.length ? torresData : TORRES_DEFAULT.map(t=>({torre:t,valorProyecto:0,cobrado:0,porCobrarTiempo:0,vencido:0,porLograr:0}));
+        const ABS_COLS = [
+          {key:'valorProyecto', default:'Valor Proyecto'},
+          {key:'cobrado', default:'Cobrado'},
+          {key:'porCobrarTiempo', default:'Por Cobrar en Tiempo'},
+          {key:'vencido', default:'Vencido'},
+          {key:'porLograr', default:'Por Lograr'}
+        ];
+        const absLabels = currentData.labels || {};
         torresHtml = `<table style="width:100%;border-collapse:collapse;font-size:12px;margin:6px 0 10px">
           <tr style="background:var(--charcoal);color:#fff">
-            <th style="text-align:left;padding:6px 10px;font-size:11px">Torre</th>
-            <th style="text-align:right;padding:6px 10px;font-size:11px">Valor Proyecto</th>
-            <th style="text-align:right;padding:6px 10px;font-size:11px">Cobrado</th>
-            <th style="text-align:right;padding:6px 10px;font-size:11px">Por Cobrar Tiempo</th>
-            <th style="text-align:right;padding:6px 10px;font-size:11px">Vencido</th>
-            <th style="text-align:right;padding:6px 10px;font-size:11px">Por Lograr</th>
-          </tr>`;
+            <th style="text-align:left;padding:6px 10px;font-size:11px">Torre</th>`;
+        for(const col of ABS_COLS){
+          const lbl = absLabels['abs_'+col.key] || col.default;
+          const editHdr = puedeEditar() ? ` contenteditable="true" style="text-align:right;padding:6px 10px;font-size:11px;cursor:text;outline:none" onblur="saveOneLabel('abs_${col.key}',this.textContent.trim())"` : ` style="text-align:right;padding:6px 10px;font-size:11px"`;
+          torresHtml += `<th${editHdr}>${lbl}</th>`;
+        }
+        torresHtml += `</tr>`;
+        /* Totals accumulators */
+        const totals = {valorProyecto:0,cobrado:0,porCobrarTiempo:0,vencido:0,porLograr:0};
         for(const t of torres){
           const editable = puedeEditar() ? ' contenteditable="true" style="text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);cursor:text;outline:none" onblur="saveAbsTorre(this,\''+id+'\',\''+mes+'\',\''+t.torre+'\')"' : ' style="text-align:right;padding:6px 10px;border-bottom:1px solid var(--border)"';
           torresHtml += `<tr>
@@ -1251,7 +1276,17 @@ function renderTab(id, tabData, logradoData) {
             <td data-abs-field="vencido"${editable}>${fmtFull(t.vencido)}</td>
             <td data-abs-field="porLograr"${editable}>${fmtFull(t.porLograr)}</td>
           </tr>`;
+          for(const k of Object.keys(totals)) totals[k] += (t[k]||0);
         }
+        /* Total row */
+        torresHtml += `<tr style="background:rgba(164,172,140,.08);font-weight:700">
+          <td style="text-align:left;padding:6px 10px;font-size:11px">Total</td>
+          <td style="text-align:right;padding:6px 10px">${fmtFull(totals.valorProyecto)}</td>
+          <td style="text-align:right;padding:6px 10px">${fmtFull(totals.cobrado)}</td>
+          <td style="text-align:right;padding:6px 10px">${fmtFull(totals.porCobrarTiempo)}</td>
+          <td style="text-align:right;padding:6px 10px">${fmtFull(totals.vencido)}</td>
+          <td style="text-align:right;padding:6px 10px">${fmtFull(totals.porLograr)}</td>
+        </tr>`;
         torresHtml += '</table>';
       }
       logradoHtml += `<div id="det-ing-${uid}" style="display:none;padding-left:18px;border-left:2px solid var(--border);margin-left:4px">${torresHtml}</div>`;
@@ -1921,9 +1956,11 @@ async function saveLabels(){
     const{data:ver,error:fe}=await supa.from('cierre_versiones').select('id,data').eq('dashboard_id',DASHBOARD_ID).eq('is_active',true).single();
     if(fe)throw new Error(fe.message);
     const newData={...ver.data,labels};
+    /* Preserve live data that may not be in the saved version */
+    if(currentData.logrado) newData.logrado = currentData.logrado;
     const{error}=await supa.from('cierre_versiones').update({data:newData}).eq('id',ver.id);
     if(error)throw new Error(error.message);
-    currentData=newData;renderAll();
+    currentData.labels = labels; renderAll();
     setStatus('Etiquetas guardadas.','ok');
   }catch(ex){setStatus('Error: '+(ex.message||String(ex)),'err');}
   if(btn){btn.disabled=false;btn.textContent='Guardar etiquetas';}
