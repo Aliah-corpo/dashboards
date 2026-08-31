@@ -1417,7 +1417,29 @@ function renderTab(id, tabData, logradoData) {
       const collapsed=(_secStates[id+'_'+row.key]===false);
       const lbl = currentData.labels?.[row.key] || currentData.scLabels?.[row.key] || row.label;
       const scTag = row.sc ? `<span class="sc-tag">${row.sc}</span>` : '';
-      tblHtml+=`<tr class="section-hdr" data-sec-hdr="${row.key}" onclick="toggleSection('${id}','${row.key}',this)"><td colspan="${scenarios.length+1}"><span class="sec-arrow">${collapsed?'&#9658;':'&#9660;'}</span>${lbl}${scTag}</td></tr>`;
+      /* Total de la seccion — siempre visible en el header */
+      const SEC_TOTALS = {
+        '_sep1':'totalGastosOperativos','_sep2':'totalGastosComercializacion',
+        '_sep3':'totalGastosFinancieros','_sep4':'totalCostoTierra',
+        '_sep45':'porRecuperar','_sep5':'utilidadNeta'
+      };
+      const totalKey = SEC_TOTALS[row.key];
+      let totalHtml = '';
+      if(totalKey && d[totalKey]){
+        const rawVal = d[totalKey][last];
+        if(rawVal !== undefined){
+          const isExp = totalKey !== 'porRecuperar' && totalKey !== 'utilidadNeta';
+          const displayVal = (isExp && rawVal > 0) ? -rawVal : rawVal;
+          totalHtml = `<span style="float:right;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:${displayVal<0?'var(--error)':'var(--charcoal)'};letter-spacing:0">${fmtFull(displayVal)}</span>`;
+        }
+      }
+      let secHdrCells = '';
+      if(scenarios.length > 1 && totalHtml){
+        secHdrCells = `<td colspan="${scenarios.length}"><span class="sec-arrow">${collapsed?'&#9658;':'&#9660;'}</span>${lbl}${scTag}</td><td style="text-align:right;background:rgba(164,172,140,.12)">${totalHtml}</td>`;
+      } else {
+        secHdrCells = `<td colspan="${scenarios.length+1}"><span class="sec-arrow">${collapsed?'&#9658;':'&#9660;'}</span>${lbl}${scTag}${totalHtml}</td>`;
+      }
+      tblHtml+=`<tr class="section-hdr" data-sec-hdr="${row.key}" onclick="toggleSection('${id}','${row.key}',this)">${secHdrCells}</tr>`;
       continue;
     }
 
