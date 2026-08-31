@@ -1295,6 +1295,13 @@ function renderTab(id, tabData, logradoData) {
       logradoHtml += `<div style="cursor:pointer" onclick="document.getElementById('det-hc-${uid}').style.display=document.getElementById('det-hc-${uid}').style.display==='none'?'block':'none'">`;
       logradoHtml += barra('Hard Cost', lgHC, expHC, 'var(--charcoal)', 28, 13);
       logradoHtml += `</div>`;
+      /* Totales HC siempre visibles */
+      logradoHtml += `<div style="display:flex;flex-wrap:wrap;gap:16px;font-size:11px;color:var(--muted);margin:-4px 0 6px;padding:0 2px">
+        <span>Ejercido: <b style="color:var(--charcoal)">${fmtCur(lgHC)}</b></span>
+        <span>Pendiente: <b style="color:var(--charcoal)">${fmtCur(expHC - lgHC)}</b></span>
+        <span>CPC: <b style="color:var(--charcoal)">${fmtCur(d.cpc?.[last]||0)}</b></span>
+        <span style="cursor:pointer;color:var(--brass-dark);font-weight:600" onclick="document.getElementById('det-hc-${uid}').style.display=document.getElementById('det-hc-${uid}').style.display==='none'?'block':'none'">&#9662; detalle</span>
+      </div>`;
       logradoHtml += `<div id="det-hc-${uid}" style="display:none;padding-left:18px;border-left:2px solid var(--border);margin-left:4px">
         <div style="font-size:12px;color:var(--muted);padding:8px 0">
           <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>Construccion</span><span style="font-weight:600">${fmtCur(lg.costoObra||0)}</span></div>
@@ -1304,6 +1311,12 @@ function renderTab(id, tabData, logradoData) {
 
       /* ——— 3. SOFT COST + sub-barras (siempre visibles) ——— */
       logradoHtml += barra('Soft Cost', lgSC, expSC, 'var(--green)', 28, 13);
+      /* Totales SC siempre visibles */
+      logradoHtml += `<div style="display:flex;flex-wrap:wrap;gap:16px;font-size:11px;color:var(--muted);margin:-4px 0 6px;padding:0 2px">
+        <span>SC1 Operativos: <b style="color:var(--charcoal)">${fmtCur(expSC1)}</b></span>
+        <span>SC2 Comercializacion: <b style="color:var(--charcoal)">${fmtCur(expSC2)}</b></span>
+        <span>SC3 Financieros: <b style="color:var(--charcoal)">${fmtCur(expSC3)}</b></span>
+      </div>`;
       logradoHtml += `<div style="padding-left:18px;border-left:2px solid var(--border);margin-left:4px">`;
       logradoHtml += barra('Gastos Operativos (SC1)', lgSC1, expSC1, 'var(--sage)', 14, 11);
       logradoHtml += barra('Gastos de Comercializacion (SC2)', lgSC2, expSC2, 'var(--sage)', 14, 11);
