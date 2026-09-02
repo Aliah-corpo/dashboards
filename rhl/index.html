@@ -621,11 +621,13 @@ async function guardarEstructura(){
 
 /* ===== FILAS DE LA TABLA ===== */
 const ROWS_BASE = [
+  {key:'_sepIng',                     label:'Ingresos',                          type:'section'},
   {key:'ingresos',                    label:'Ingreso por Ventas',               fmt:fmtFull, type:'data',       isExpense:false},
+  {key:'_sepHC',                      label:'Hard Cost',                         type:'section'},
   {key:'costoObra',                   label:'Construccion (Hard Cost)',          fmt:fmtFull, type:'data',       isExpense:true},
   {key:'cpc',                         label:'Contratos por cerrar',              fmt:fmtFull, type:'data',       isExpense:true, esProvision:true},
   {key:'sumaHC',                      label:'Hard Cost Neto (- Recuperaciones)', fmt:fmtFull, type:'total',      isExpense:true},
-  {key:'utilidadBruta',               label:'Utilidad Bruta',                   fmt:fmtFull, type:'total',      isExpense:false},
+  {key:'utilidadBruta',               label:'Utilidad Bruta',                   fmt:fmtFull, type:'total',      isExpense:false, standalone:true},
   {key:'_sep1',                       label:'Gastos Operativos',                 type:'section', sc:'SC 1'},
   {key:'gestionLicencias',            label:'Gestion, Derechos y Licencias',    fmt:fmtFull, type:'data',       isExpense:true},
   {key:'contratistaGeneral',          label:'Contratista General (Fees)',        fmt:fmtFull, type:'data',       isExpense:true},
@@ -640,7 +642,7 @@ const ROWS_BASE = [
   {key:'publicidad',                  label:'Publicidad',                        fmt:fmtFull, type:'data',       isExpense:true, formulaDriven:true},
   {key:'comisionComercializacion',    label:'Comision por Comercializacion',     fmt:fmtFull, type:'data',       isExpense:true, formulaDriven:true},
   {key:'totalGastosComercializacion', label:'Total Gastos Comercializacion',     fmt:fmtFull, type:'total',      isExpense:true},
-  {key:'utilidadOperativa',           label:'Utilidad Operativa',                fmt:fmtFull, type:'total',      isExpense:false},
+  {key:'utilidadOperativa',           label:'Utilidad Operativa',                fmt:fmtFull, type:'total',      isExpense:false, standalone:true},
   {key:'_sep3',                       label:'Gastos Financieros',                type:'section', sc:'SC 3'},
   {key:'interesesBX',                 label:'Intereses BX+',                    fmt:fmtFull, type:'data',       isExpense:true},
   {key:'comisionAperturaBX',          label:'Comision Apertura BX+',            fmt:fmtFull, type:'data',       isExpense:true},
@@ -2642,6 +2644,7 @@ function renderTab(id, tabData, logradoData) {
       const scTag = row.sc ? `<span class="sc-tag">${row.sc}</span>` : '';
       /* Total de la seccion — siempre visible en el header */
       const SEC_TOTALS = {
+        '_sepIng':'ingresos','_sepHC':'sumaHC',
         '_sep1':'totalGastosOperativos','_sep2':'totalGastosComercializacion',
         '_sep3':'totalGastosFinancieros','_sep4':'totalCostoTierra',
         '_sep45':'porRecuperar','_sep5':'utilidadNeta'
@@ -2651,7 +2654,7 @@ function renderTab(id, tabData, logradoData) {
       if(totalKey && d[totalKey]){
         const rawVal = d[totalKey][last];
         if(rawVal !== undefined){
-          const isExp = totalKey !== 'porRecuperar' && totalKey !== 'utilidadNeta';
+          const isExp = totalKey !== 'porRecuperar' && totalKey !== 'utilidadNeta' && totalKey !== 'ingresos';
           const displayVal = (isExp && rawVal > 0) ? -rawVal : rawVal;
           totalHtml = `<span style="float:right;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:${displayVal<0?'var(--error)':'var(--charcoal)'};letter-spacing:0">${fmtFull(displayVal)}</span>`;
         }
@@ -2666,9 +2669,10 @@ function renderTab(id, tabData, logradoData) {
       continue;
     }
 
+    if(row.standalone) curSec=null;
     const trCls=row.type==='total'?'row-total':row.type==='hero'?'row-hero':row.type==='pct'?'row-pct':row.type==='expandable'?'row-expandable':'';
     const secAttr=curSec?` data-sec="${curSec}"`:'';
-    const secHidden=(_secStates[id+'_'+curSec]!==true)?' style="display:none"':'';
+    const secHidden=(curSec && _secStates[id+'_'+curSec]!==true)?' style="display:none"':'';
     let onclk='';
     if(row.type==='expandable') onclk=` onclick="toggleDetail(this,'${id}','${row.key}')"`;
 
