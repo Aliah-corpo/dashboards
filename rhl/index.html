@@ -814,7 +814,14 @@ function rellenarFaltantes(destino, base){
     const bd = base[t].data || {};
     const n  = (destino[t].scenarios || []).length;
     Object.keys(bd).forEach(k=>{
-      if(Array.isArray(dd[k]) && dd[k].length) return;   // ya lo tiene
+      if(Array.isArray(dd[k]) && dd[k].length) {
+        /* Si es un campo de recuperaciones y esta todo en cero pero EMBEDDED tiene datos, usar EMBEDDED */
+        if(k.startsWith('rec') && Array.isArray(bd[k]) && bd[k].some(v=>v>0) && dd[k].every(v=>!v)){
+          dd[k] = Array.from({length:n}, (_,i)=> bd[k][i] !== undefined ? bd[k][i] : (bd[k][bd[k].length-1] ?? 0));
+          faltantesRellenados.push(`${t}.${k}(zero-fix)`);
+        }
+        return;   // ya lo tiene
+      }
       const src = bd[k];
       dd[k] = Array.isArray(src)
         ? Array.from({length:n}, (_,i)=> src[i] !== undefined ? src[i] : (src[src.length-1] ?? 0))
