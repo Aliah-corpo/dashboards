@@ -1828,27 +1828,27 @@ function buildAbsorcionHtml(absData){
   /* Build table */
   if(ml.length && vendidos.length){
     const colCount = mesesFuturos.length + 4; /* Depto, Pagado, Vencido, Anterior, ...meses, Total */
-    const statusCol = isAdmin ? '<th style="width:60px">Status</th>' : '';
+    const adminGestion = isAdmin ? `<div style="margin-bottom:10px;text-align:right"><button onclick="document.querySelectorAll('.col-gestion').forEach(el=>el.style.display=el.style.display==='none'?'':'none')" style="font-size:10px;padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif">Gestión cobranza</button></div>` : '';
 
-    html += `<div class="card"><p class="card-title">Detalle de Flujos por Depto</p><div class="abs-flujos-tbl-wrap"><table class="abs-flujos"><thead><tr>
+    html += `<div class="card"><p class="card-title">Detalle de Flujos por Depto</p>${adminGestion}<div class="abs-flujos-tbl-wrap"><table class="abs-flujos"><thead><tr>
       <th style="text-align:left;min-width:120px">Depto</th>
       <th style="text-align:left;min-width:140px">Cliente</th>
-      ${statusCol}
+      <th class="col-gestion" style="display:none;width:70px">Status</th>
       <th style="text-align:right">Valor</th>
       <th style="text-align:right">Pagado</th>
-      <th style="text-align:right;color:var(--error)">Vencido</th>
+      <th style="text-align:right">Saldo</th>
       <th style="text-align:right;background:rgba(164,172,140,.08)">Anterior</th>`;
     mesesFuturos.forEach(m=>{ html+=`<th style="text-align:right">${m}</th>`; });
-    html += `<th style="text-align:right;font-weight:700">Saldo</th></tr></thead><tbody>`;
+    html += `<th style="text-align:right;font-weight:700">Flujo Pend.</th></tr></thead><tbody>`;
 
     /* Build by Fase > Torre */
     [{fase:1, torres:['A','B','C']}, {fase:2, torres:['D','E']}].forEach(faseGrp => {
-      let faseTotalPagado=0, faseTotalVencido=0, faseTotalAnterior=0, faseTotalSaldo=0, faseTotalValor=0;
+      let faseTotalPagado=0, faseTotalSaldoPend=0, faseTotalAnterior=0, faseTotalFlujo=0, faseTotalValor=0;
       const faseMeses = {};
       mesesFuturos.forEach(m=>{ faseMeses[m]=0; });
 
       /* Fase header */
-      const faseColSpan = 6 + mesesFuturos.length + 1 + (isAdmin?1:0);
+      const faseColSpan = 6 + mesesFuturos.length + 1 + 1;
       html += `<tr class="section-hdr" style="cursor:pointer" onclick="toggleFlujosSection('fase${faseGrp.fase}')">
         <td colspan="${faseColSpan}" style="font-weight:700;font-size:13px"><span class="sec-arrow" id="arrow-fase${faseGrp.fase}">&#9658;</span> Fase ${faseGrp.fase} — Torres ${faseGrp.torres.join(', ')}</td></tr>`;
 
@@ -1856,7 +1856,7 @@ function buildAbsorcionHtml(absData){
         const torreUnits = vendidos.filter(x => x.torre.toUpperCase().replace(/[^A-Z]/g,'')===torre);
         if(!torreUnits.length) return;
 
-        let torrePagado=0, torreVencido=0, torreAnterior=0, torreSaldo=0, torreValor=0;
+        let torrePagado=0, torreSaldoPend=0, torreAnterior=0, torreFlujo=0, torreValor=0;
         const torreMeses = {};
         mesesFuturos.forEach(m=>{ torreMeses[m]=0; });
 
@@ -1867,20 +1867,21 @@ function buildAbsorcionHtml(absData){
         /* Depto rows */
         torreUnits.sort((a,b)=>a.depto.localeCompare(b.depto)).forEach(u => {
           const anterior = mesesAnteriores.reduce((s,m)=>s+(u.flujos[m]||0),0);
-          const saldo = Object.values(u.flujos||{}).reduce((s,v)=>s+v,0);
+          const flujoTotal = Object.values(u.flujos||{}).reduce((s,v)=>s+v,0);
+          const saldoPend = (u.valorTotal||0) - (u.totalAportado||0);
           torrePagado += u.totalAportado||0;
-          torreVencido += u.saldoDiferido||0;
+          torreSaldoPend += Math.max(0, saldoPend);
           torreAnterior += anterior;
-          torreSaldo += saldo;
+          torreFlujo += flujoTotal;
           torreValor += u.valorTotal||0;
 
-          const statusHtml = isAdmin ? `<td style="text-align:center"><select class="flujo-status-sel" data-depto="${u.depto}" onchange="setFlujoStatus('${u.depto}',this.value)" style="font-size:9px;padding:1px 2px;border:1px solid var(--border);border-radius:4px;background:var(--white);color:var(--charcoal)">
+          const statusHtml = `<td class="col-gestion" style="display:none;text-align:center"><select data-depto="${u.depto}" onchange="setFlujoStatus('${u.depto}',this.value)" style="font-size:9px;padding:1px 2px;border:1px solid var(--border);border-radius:4px;background:var(--white);color:var(--charcoal)">
             <option value="normal" ${(u.statusCobranza||'normal')==='normal'?'selected':''}>Normal</option>
             <option value="convenio" ${u.statusCobranza==='convenio'?'selected':''}>Convenio</option>
             <option value="revision" ${u.statusCobranza==='revision'?'selected':''}>Revision</option>
-          </select></td>` : '';
+          </select></td>`;
 
-          const vencidoCls = (u.saldoDiferido||0) > 0 ? 'color:var(--error);font-weight:600' : '';
+          const saldoColor = saldoPend > 0 ? 'color:var(--brass-dark)' : 'color:var(--green)';
 
           html += `<tr data-flujos-sec="torre${torre}" style="display:none;font-size:11px">
             <td style="font-weight:600;padding-left:36px">${u.depto}</td>
@@ -1888,65 +1889,65 @@ function buildAbsorcionHtml(absData){
             ${statusHtml}
             <td style="text-align:right">${fc(u.valorTotal||0)}</td>
             <td style="text-align:right">${fc(u.totalAportado||0)}</td>
-            <td style="text-align:right;${vencidoCls}">${fc(u.saldoDiferido||0)}</td>
+            <td style="text-align:right;${saldoColor}">${fc(Math.max(0,saldoPend))}</td>
             <td style="text-align:right;background:rgba(164,172,140,.05)">${fc(anterior)}</td>`;
           mesesFuturos.forEach(m=>{
             const v = u.flujos[m]||0;
             torreMeses[m] += v;
             html += `<td style="text-align:right">${v?fc(v):'—'}</td>`;
           });
-          html += `<td style="text-align:right;font-weight:600">${fc(saldo)}</td></tr>`;
+          html += `<td style="text-align:right;font-weight:600">${fc(flujoTotal)}</td></tr>`;
         });
 
         /* Torre subtotal */
-        faseTotalPagado += torrePagado; faseTotalVencido += torreVencido;
-        faseTotalAnterior += torreAnterior; faseTotalSaldo += torreSaldo; faseTotalValor += torreValor;
+        faseTotalPagado += torrePagado; faseTotalSaldoPend += torreSaldoPend;
+        faseTotalAnterior += torreAnterior; faseTotalFlujo += torreFlujo; faseTotalValor += torreValor;
         mesesFuturos.forEach(m=>{ faseMeses[m] += torreMeses[m]; });
 
         html += `<tr data-flujos-sec="fase${faseGrp.fase}" style="display:none;background:rgba(164,172,140,.08);font-weight:600;font-size:11px">
           <td style="padding-left:24px" colspan="2">Subtotal Torre ${torre}</td>
-          ${isAdmin?'<td></td>':''}
+          <td class="col-gestion" style="display:none"></td>
           <td style="text-align:right">${fc(torreValor)}</td>
           <td style="text-align:right">${fc(torrePagado)}</td>
-          <td style="text-align:right;color:var(--error)">${fc(torreVencido)}</td>
+          <td style="text-align:right;color:var(--brass-dark)">${fc(torreSaldoPend)}</td>
           <td style="text-align:right;background:rgba(164,172,140,.12)">${fc(torreAnterior)}</td>`;
         mesesFuturos.forEach(m=>{ html+=`<td style="text-align:right">${fc(torreMeses[m])}</td>`; });
-        html += `<td style="text-align:right;font-weight:700">${fc(torreSaldo)}</td></tr>`;
+        html += `<td style="text-align:right;font-weight:700">${fc(torreFlujo)}</td></tr>`;
       });
 
       /* Fase subtotal (siempre visible) */
       html += `<tr style="background:rgba(72,77,49,.08);font-weight:700;font-size:12px">
         <td colspan="2">Total Fase ${faseGrp.fase}</td>
-        ${isAdmin?'<td></td>':''}
+        <td class="col-gestion" style="display:none"></td>
         <td style="text-align:right">${fc(faseTotalValor)}</td>
         <td style="text-align:right">${fc(faseTotalPagado)}</td>
-        <td style="text-align:right;color:var(--error)">${fc(faseTotalVencido)}</td>
+        <td style="text-align:right;color:var(--brass-dark)">${fc(faseTotalSaldoPend)}</td>
         <td style="text-align:right;background:rgba(164,172,140,.12)">${fc(faseTotalAnterior)}</td>`;
       mesesFuturos.forEach(m=>{ html+=`<td style="text-align:right">${fc(faseMeses[m])}</td>`; });
-      html += `<td style="text-align:right">${fc(faseTotalSaldo)}</td></tr>`;
+      html += `<td style="text-align:right">${fc(faseTotalFlujo)}</td></tr>`;
     });
 
     /* Gran total */
-    let gtPagado=0, gtVencido=0, gtAnterior=0, gtSaldo=0, gtValor=0;
+    let gtPagado=0, gtSaldoPend=0, gtAnterior=0, gtFlujo=0, gtValor=0;
     const gtMeses = {};
     mesesFuturos.forEach(m=>{ gtMeses[m]=0; });
     vendidos.forEach(u => {
       gtPagado += u.totalAportado||0;
-      gtVencido += u.saldoDiferido||0;
+      gtSaldoPend += Math.max(0, (u.valorTotal||0)-(u.totalAportado||0));
       gtAnterior += mesesAnteriores.reduce((s,m)=>s+(u.flujos[m]||0),0);
-      gtSaldo += Object.values(u.flujos||{}).reduce((s,v)=>s+v,0);
+      gtFlujo += Object.values(u.flujos||{}).reduce((s,v)=>s+v,0);
       gtValor += u.valorTotal||0;
       mesesFuturos.forEach(m=>{ gtMeses[m] += (u.flujos[m]||0); });
     });
     html += `<tr class="abs-flujos-total" style="font-size:12px">
       <td colspan="2">Gran Total</td>
-      ${isAdmin?'<td></td>':''}
+      <td class="col-gestion" style="display:none"></td>
       <td style="text-align:right">${fc(gtValor)}</td>
       <td style="text-align:right">${fc(gtPagado)}</td>
-      <td style="text-align:right;color:var(--error)">${fc(gtVencido)}</td>
+      <td style="text-align:right;color:var(--brass-dark)">${fc(gtSaldoPend)}</td>
       <td style="text-align:right;background:rgba(164,172,140,.12)">${fc(gtAnterior)}</td>`;
     mesesFuturos.forEach(m=>{ html+=`<td style="text-align:right">${fc(gtMeses[m])}</td>`; });
-    html += `<td style="text-align:right">${fc(gtSaldo)}</td></tr>`;
+    html += `<td style="text-align:right">${fc(gtFlujo)}</td></tr>`;
 
     html += `</tbody></table></div></div>`;
   }
