@@ -1789,33 +1789,163 @@ function buildAbsorcionHtml(absData){
   /* ===== SUB-TAB 3: FLUJOS ESPERADOS ===== */
   html += `<div class="abs-panel" id="abs-flujos">`;
 
-  /* Chart: flujos mensuales */
+  /* Cuadro informativo: Saldos de Hipotecas pendientes */
+  const hipDefault = currentData.absorcion?.saldoHipotecas ?? 18000000;
+  html += `<div class="card" style="margin-bottom:16px;border-left:3px solid var(--brass)">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 4px">Saldos de Hipotecas pendientes</p>
+        <p style="font-size:11px;color:var(--muted);margin:0">Dato informativo — no impacta calculos</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="text" id="inp-saldo-hip" value="${fc(hipDefault)}" style="width:140px;text-align:right;border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-size:14px;font-weight:700;font-family:'Outfit',sans-serif;color:var(--charcoal)"
+          onchange="guardarSaldoHipotecas(this.value)" ${!isAdmin?'disabled':''}>
+      </div>
+    </div>
+  </div>`;
+
+  /* Chart: flujos mensuales (mantener) */
   html += `<div class="card"><p class="card-title">Flujos Esperados por Mes</p><div class="chart-wrap" style="height:260px"><canvas id="chart-abs-flujos"></canvas></div></div>`;
 
-  /* Table */
-  const ml = views.monthLabels;
-  if(ml.length){
-    html += `<div class="card"><p class="card-title">Tabla de Flujos</p><div class="abs-flujos-tbl-wrap"><table class="abs-flujos"><thead><tr><th>Concepto</th>`;
-    ml.forEach(m=>{ html+=`<th>${m}</th>`; });
-    html += `<th>Total</th></tr></thead><tbody>`;
+  /* Determinar mes actual para separar ANTERIOR vs futuros */
+  const ahora = new Date();
+  const mesActual = ahora.getFullYear() * 12 + ahora.getMonth();
+  const mesMap2 = {ENE:0,FEB:1,MAR:2,ABR:3,MAY:4,JUN:5,JUL:6,AGO:7,SEP:8,OCT:9,NOV:10,DIC:11};
+  function mlToNum(label){ const [m,y]=label.split('-'); return parseInt(y)*12+(mesMap2[m]||0); }
 
-    /* Fase 1 */
-    let totF1 = 0;
-    html += `<tr style="background:rgba(164,172,140,.06)"><td style="font-weight:700">Fase 1</td>`;
-    ml.forEach(m=>{const v=views.flujosFase[0].meses[m]||0; totF1+=v; html+=`<td>${fc(v)}</td>`;});
-    html += `<td style="font-weight:700">${fc(totF1)}</td></tr>`;
+  const mesesFuturos = ml.filter(m => mlToNum(m) >= mesActual);
+  const mesesAnteriores = ml.filter(m => mlToNum(m) < mesActual);
 
-    /* Fase 2 */
-    let totF2 = 0;
-    html += `<tr style="background:rgba(176,141,87,.06)"><td style="font-weight:700">Fase 2</td>`;
-    ml.forEach(m=>{const v=views.flujosFase[1].meses[m]||0; totF2+=v; html+=`<td>${fc(v)}</td>`;});
-    html += `<td style="font-weight:700">${fc(totF2)}</td></tr>`;
+  /* Agrupar unidades por Fase > Torre */
+  const us = absData.unidades || [];
+  const vendidos = us.filter(x => x.status==='VENDIDO');
 
-    /* Total */
-    let gt = 0;
-    html += `<tr class="abs-flujos-total"><td>Total</td>`;
-    ml.forEach(m=>{const v=views.flujosPorMes[m]||0; gt+=v; html+=`<td>${fc(v)}</td>`;});
-    html += `<td>${fc(gt)}</td></tr>`;
+  /* Separar: pendientes de escriturar (tienen fechaLiqExpec) vs en cobranza activa */
+  const conFechaEsc = vendidos.filter(x => x.fechaLiqExpec || x.fechaLiqReal);
+  const sinFechaEsc = vendidos.filter(x => !x.fechaLiqExpec && !x.fechaLiqReal);
+
+  /* Build table */
+  if(ml.length && vendidos.length){
+    const colCount = mesesFuturos.length + 4; /* Depto, Pagado, Vencido, Anterior, ...meses, Total */
+    const statusCol = isAdmin ? '<th style="width:60px">Status</th>' : '';
+
+    html += `<div class="card"><p class="card-title">Detalle de Flujos por Depto</p><div class="abs-flujos-tbl-wrap"><table class="abs-flujos"><thead><tr>
+      <th style="text-align:left;min-width:120px">Depto</th>
+      <th style="text-align:left;min-width:140px">Cliente</th>
+      ${statusCol}
+      <th style="text-align:right">Valor</th>
+      <th style="text-align:right">Pagado</th>
+      <th style="text-align:right;color:var(--error)">Vencido</th>
+      <th style="text-align:right;background:rgba(164,172,140,.08)">Anterior</th>`;
+    mesesFuturos.forEach(m=>{ html+=`<th style="text-align:right">${m}</th>`; });
+    html += `<th style="text-align:right;font-weight:700">Saldo</th></tr></thead><tbody>`;
+
+    /* Build by Fase > Torre */
+    [{fase:1, torres:['A','B','C']}, {fase:2, torres:['D','E']}].forEach(faseGrp => {
+      let faseTotalPagado=0, faseTotalVencido=0, faseTotalAnterior=0, faseTotalSaldo=0, faseTotalValor=0;
+      const faseMeses = {};
+      mesesFuturos.forEach(m=>{ faseMeses[m]=0; });
+
+      /* Fase header */
+      const faseColSpan = 6 + mesesFuturos.length + 1 + (isAdmin?1:0);
+      html += `<tr class="section-hdr" style="cursor:pointer" onclick="toggleFlujosSection('fase${faseGrp.fase}')">
+        <td colspan="${faseColSpan}" style="font-weight:700;font-size:13px"><span class="sec-arrow" id="arrow-fase${faseGrp.fase}">&#9658;</span> Fase ${faseGrp.fase} — Torres ${faseGrp.torres.join(', ')}</td></tr>`;
+
+      faseGrp.torres.forEach(torre => {
+        const torreUnits = vendidos.filter(x => x.torre.toUpperCase().replace(/[^A-Z]/g,'')===torre);
+        if(!torreUnits.length) return;
+
+        let torrePagado=0, torreVencido=0, torreAnterior=0, torreSaldo=0, torreValor=0;
+        const torreMeses = {};
+        mesesFuturos.forEach(m=>{ torreMeses[m]=0; });
+
+        /* Torre header */
+        html += `<tr class="section-hdr" data-flujos-sec="fase${faseGrp.fase}" style="display:none;cursor:pointer;background:rgba(164,172,140,.04)" onclick="toggleFlujosSection('torre${torre}')">
+          <td colspan="${faseColSpan}" style="font-weight:600;font-size:12px;padding-left:24px"><span class="sec-arrow" id="arrow-torre${torre}">&#9658;</span> Torre ${torre} (${torreUnits.length} deptos)</td></tr>`;
+
+        /* Depto rows */
+        torreUnits.sort((a,b)=>a.depto.localeCompare(b.depto)).forEach(u => {
+          const anterior = mesesAnteriores.reduce((s,m)=>s+(u.flujos[m]||0),0);
+          const saldo = Object.values(u.flujos||{}).reduce((s,v)=>s+v,0);
+          torrePagado += u.totalAportado||0;
+          torreVencido += u.saldoDiferido||0;
+          torreAnterior += anterior;
+          torreSaldo += saldo;
+          torreValor += u.valorTotal||0;
+
+          const statusHtml = isAdmin ? `<td style="text-align:center"><select class="flujo-status-sel" data-depto="${u.depto}" onchange="setFlujoStatus('${u.depto}',this.value)" style="font-size:9px;padding:1px 2px;border:1px solid var(--border);border-radius:4px;background:var(--white);color:var(--charcoal)">
+            <option value="normal" ${(u.statusCobranza||'normal')==='normal'?'selected':''}>Normal</option>
+            <option value="convenio" ${u.statusCobranza==='convenio'?'selected':''}>Convenio</option>
+            <option value="revision" ${u.statusCobranza==='revision'?'selected':''}>Revision</option>
+          </select></td>` : '';
+
+          const vencidoCls = (u.saldoDiferido||0) > 0 ? 'color:var(--error);font-weight:600' : '';
+
+          html += `<tr data-flujos-sec="torre${torre}" style="display:none;font-size:11px">
+            <td style="font-weight:600;padding-left:36px">${u.depto}</td>
+            <td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px" title="${u.propietario||''}">${u.propietario||'—'}</td>
+            ${statusHtml}
+            <td style="text-align:right">${fc(u.valorTotal||0)}</td>
+            <td style="text-align:right">${fc(u.totalAportado||0)}</td>
+            <td style="text-align:right;${vencidoCls}">${fc(u.saldoDiferido||0)}</td>
+            <td style="text-align:right;background:rgba(164,172,140,.05)">${fc(anterior)}</td>`;
+          mesesFuturos.forEach(m=>{
+            const v = u.flujos[m]||0;
+            torreMeses[m] += v;
+            html += `<td style="text-align:right">${v?fc(v):'—'}</td>`;
+          });
+          html += `<td style="text-align:right;font-weight:600">${fc(saldo)}</td></tr>`;
+        });
+
+        /* Torre subtotal */
+        faseTotalPagado += torrePagado; faseTotalVencido += torreVencido;
+        faseTotalAnterior += torreAnterior; faseTotalSaldo += torreSaldo; faseTotalValor += torreValor;
+        mesesFuturos.forEach(m=>{ faseMeses[m] += torreMeses[m]; });
+
+        html += `<tr data-flujos-sec="fase${faseGrp.fase}" style="display:none;background:rgba(164,172,140,.08);font-weight:600;font-size:11px">
+          <td style="padding-left:24px" colspan="2">Subtotal Torre ${torre}</td>
+          ${isAdmin?'<td></td>':''}
+          <td style="text-align:right">${fc(torreValor)}</td>
+          <td style="text-align:right">${fc(torrePagado)}</td>
+          <td style="text-align:right;color:var(--error)">${fc(torreVencido)}</td>
+          <td style="text-align:right;background:rgba(164,172,140,.12)">${fc(torreAnterior)}</td>`;
+        mesesFuturos.forEach(m=>{ html+=`<td style="text-align:right">${fc(torreMeses[m])}</td>`; });
+        html += `<td style="text-align:right;font-weight:700">${fc(torreSaldo)}</td></tr>`;
+      });
+
+      /* Fase subtotal (siempre visible) */
+      html += `<tr style="background:rgba(72,77,49,.08);font-weight:700;font-size:12px">
+        <td colspan="2">Total Fase ${faseGrp.fase}</td>
+        ${isAdmin?'<td></td>':''}
+        <td style="text-align:right">${fc(faseTotalValor)}</td>
+        <td style="text-align:right">${fc(faseTotalPagado)}</td>
+        <td style="text-align:right;color:var(--error)">${fc(faseTotalVencido)}</td>
+        <td style="text-align:right;background:rgba(164,172,140,.12)">${fc(faseTotalAnterior)}</td>`;
+      mesesFuturos.forEach(m=>{ html+=`<td style="text-align:right">${fc(faseMeses[m])}</td>`; });
+      html += `<td style="text-align:right">${fc(faseTotalSaldo)}</td></tr>`;
+    });
+
+    /* Gran total */
+    let gtPagado=0, gtVencido=0, gtAnterior=0, gtSaldo=0, gtValor=0;
+    const gtMeses = {};
+    mesesFuturos.forEach(m=>{ gtMeses[m]=0; });
+    vendidos.forEach(u => {
+      gtPagado += u.totalAportado||0;
+      gtVencido += u.saldoDiferido||0;
+      gtAnterior += mesesAnteriores.reduce((s,m)=>s+(u.flujos[m]||0),0);
+      gtSaldo += Object.values(u.flujos||{}).reduce((s,v)=>s+v,0);
+      gtValor += u.valorTotal||0;
+      mesesFuturos.forEach(m=>{ gtMeses[m] += (u.flujos[m]||0); });
+    });
+    html += `<tr class="abs-flujos-total" style="font-size:12px">
+      <td colspan="2">Gran Total</td>
+      ${isAdmin?'<td></td>':''}
+      <td style="text-align:right">${fc(gtValor)}</td>
+      <td style="text-align:right">${fc(gtPagado)}</td>
+      <td style="text-align:right;color:var(--error)">${fc(gtVencido)}</td>
+      <td style="text-align:right;background:rgba(164,172,140,.12)">${fc(gtAnterior)}</td>`;
+    mesesFuturos.forEach(m=>{ html+=`<td style="text-align:right">${fc(gtMeses[m])}</td>`; });
+    html += `<td style="text-align:right">${fc(gtSaldo)}</td></tr>`;
 
     html += `</tbody></table></div></div>`;
   }
@@ -1871,6 +2001,36 @@ function switchAbsTab(btn, panelId){
   btn.classList.add('on');
   const panel = document.getElementById(panelId);
   if(panel) panel.classList.add('on');
+  setTimeout(()=>{ if(currentData.absorcion) renderAbsorcionCharts(currentData.absorcion); }, 100);
+}
+
+/* Toggle collapse for flujos sections (fase/torre) */
+const _flujosSec = {};
+function toggleFlujosSection(secId){
+  _flujosSec[secId] = !_flujosSec[secId];
+  const open = _flujosSec[secId];
+  const arrow = document.getElementById('arrow-'+secId);
+  if(arrow) arrow.innerHTML = open ? '&#9660;' : '&#9658;';
+  document.querySelectorAll(`[data-flujos-sec="${secId}"]`).forEach(el=>{
+    el.style.display = open ? '' : 'none';
+  });
+}
+
+function setFlujoStatus(depto, val){
+  if(!currentData.absorcion?.unidades) return;
+  const u = currentData.absorcion.unidades.find(x=>x.depto===depto);
+  if(u) u.statusCobranza = val;
+  guardarAbsorcion('Status cobranza: '+depto+' → '+val).catch(()=>{});
+}
+
+function guardarSaldoHipotecas(val){
+  const num = parseFloat(String(val).replace(/[^0-9.\-]/g,''));
+  if(isNaN(num)) return;
+  if(!currentData.absorcion) currentData.absorcion = {};
+  currentData.absorcion.saldoHipotecas = num;
+  const inp = document.getElementById('inp-saldo-hip');
+  if(inp) inp.value = '$'+Math.round(num).toLocaleString('en-US');
+  guardarAbsorcion('Saldo hipotecas: $'+Math.round(num).toLocaleString()).catch(()=>{});
 }
 
 /* ---------- CHARTS ABSORCION ---------- */
