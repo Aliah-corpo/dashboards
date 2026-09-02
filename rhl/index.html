@@ -1680,6 +1680,7 @@ function buildAbsorcionHtml(absData){
   const fp = (n,d) => d===0?'0%':(n/d*100).toFixed(1)+'%';
   const totalValor = views.fases.reduce((s,f)=>s+f.valorTotal,0);
   const totalVendido = views.fases.reduce((s,f)=>s+f.valorVendido,0);
+  const ml = views.monthLabels;
 
   let html = `
   <div class="abs-tab-nav">
