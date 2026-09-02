@@ -678,7 +678,8 @@ const DEVOL_DETAIL = [
 const CONS_INPUTS = ['ingresos','costoObra','gestionLicencias','contratistaGeneral',
   'indirectoCorp','gastosOpObra','proyectoEjecutivo','activosFijos','legal','sat',
   'publicidad','comisionComercializacion','interesesBX','comisionAperturaBX',
-  'otrosGastosFin','adelantoEtapa2','equipamiento','tierraBase'];
+  'otrosGastosFin','adelantoEtapa2','equipamiento','tierraBase',
+  'recEquipamiento','recNegociacion','recCargadores','recElevadores'];
 
 function derivarConsolidado(){
   if(!currentData.e1 || !currentData.e2 || !currentData.cons) return;
@@ -1449,6 +1450,8 @@ function parseMegasembrado(file){
         const colSaldoDif  = findCol('SALDO DIFERIDO');
         const colAportado  = findCol('TOTAL APORTADO','TOTAL_APORTADO');
         const colFechaIni  = findCol('FECHA INICIO','INICIO PAGOS');
+        const colFechaLiq  = findCol('FECHA DE LIQ','FECHA LIQ REAL');
+        const colFechaExp  = findCol('FORMULA FIN MES','FIN MES EXPEC','FIN MES EXP');
 
         /* Detectar columnas de meses (flujos) — buscan AGO-2026, SEP-2026, etc */
         const monthCols = [];
@@ -1495,6 +1498,8 @@ function parseMegasembrado(file){
             pagoDiferido: gn(r,colDiferido),
             saldoDiferido: gn(r,colSaldoDif),
             totalAportado: gn(r,colAportado),
+            fechaLiqReal: colFechaLiq>=0 ? r[colFechaLiq] : null,
+            fechaLiqExpec: colFechaExp>=0 ? r[colFechaExp] : null,
             flujos: {}
           };
 
@@ -2031,59 +2036,67 @@ function mergeAbsorcionConPrecios(absData, preciosData){
 }
 
 /* ---------- GENERAR FLUJOS SINTETICOS ---------- */
-function generarFlujosSinteticos(absData){
-  /* Para unidades vendidas con saldoDiferido > 0 y sin flujos mensuales,
-     distribuir el saldo pendiente en los proximos 12-24 meses
-     basado en la informacion de parcialidades disponible. */
-  const hoy = new Date();
-  const mesActual = hoy.getMonth();
-  const anioActual = hoy.getFullYear();
+function generarFlujosLiquidacion(absData){
+  /* Usa la columna BM "Formula Fin mes Expec / firma" del MEGASEMBRADO
+     para colocar el saldo pendiente de cada unidad vendida en el mes
+     de liquidacion esperada a escritura. */
   const MES_LABEL = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
 
-  /* Generar labels de meses futuros (18 meses) */
-  const monthLabels = [];
-  for(let i=0; i<18; i++){
-    const m = (mesActual + i) % 12;
-    const a = anioActual + Math.floor((mesActual + i) / 12);
-    monthLabels.push(MES_LABEL[m]+'-'+a);
+  function parseDateToLabel(val){
+    /* SheetJS con cellDates:true puede dar Date, string DD/MM/YYYY o serial */
+    if(!val) return null;
+    let d;
+    if(val instanceof Date){ d = val; }
+    else if(typeof val === 'string'){
+      const parts = val.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      if(!parts) return null;
+      d = new Date(parseInt(parts[3]), parseInt(parts[2])-1, parseInt(parts[1]));
+    } else if(typeof val === 'number'){
+      /* Excel serial date */
+      d = new Date((val - 25569) * 86400000);
+    } else return null;
+    if(isNaN(d.getTime())) return null;
+    return { label: MES_LABEL[d.getMonth()]+'-'+d.getFullYear(), date: d };
   }
+
+  let sinFecha = 0, conFecha = 0, yaLiquidados = 0;
+  const hoy = new Date();
 
   for(const u of absData.unidades){
     if(u.status!=='VENDIDO') continue;
-    /* Si ya tiene flujos (del archivo), respetar */
-    if(Object.keys(u.flujos||{}).length > 0) continue;
 
-    /* Saldo pendiente = valorTotal - totalAportado (lo que falta cobrar) */
+    /* Saldo pendiente a liquidacion = valorTotal - totalAportado */
     const pendiente = Math.max(0, (u.valorTotal||0) - (u.totalAportado||0));
-    if(pendiente < 1000) continue;
+    if(pendiente < 100) { yaLiquidados++; continue; }
 
-    /* Estimar meses restantes: si tiene saldoDiferido, usar como referencia.
-       Si no, distribuir en 12 meses como default. */
-    let mesesRestantes = 12;
-    if(u.saldoDiferido > 0 && u.pagoDiferido > 0){
-      /* pagoDiferido tipicamente es el monto mensual de diferido */
-      mesesRestantes = Math.ceil(u.saldoDiferido / u.pagoDiferido);
-      mesesRestantes = Math.max(1, Math.min(mesesRestantes, 36));
-    }
-    const mensualidad = pendiente / mesesRestantes;
+    /* Usar fechaLiqExpec (BM) como fecha de liquidacion a escritura */
+    const parsed = parseDateToLabel(u.fechaLiqExpec) || parseDateToLabel(u.fechaLiqReal);
+    if(!parsed){ sinFecha++; continue; }
 
-    u.flujos = {};
-    for(let i=0; i<Math.min(mesesRestantes, monthLabels.length); i++){
-      u.flujos[monthLabels[i]] = Math.round(mensualidad);
-    }
+    conFecha++;
+    u.fechaLiqMes = parsed.label;
+
+    /* Colocar el pendiente completo en ese mes */
+    if(!u.flujos) u.flujos = {};
+    u.flujos[parsed.label] = (u.flujos[parsed.label]||0) + pendiente;
   }
 
-  /* Actualizar monthCols */
+  /* Actualizar monthCols con todas las fechas de liquidacion */
   const allMonths = new Set(absData.monthCols||[]);
-  monthLabels.forEach(ml => allMonths.add(ml));
+  absData.unidades.forEach(u => {
+    if(u.fechaLiqMes) allMonths.add(u.fechaLiqMes);
+    Object.keys(u.flujos||{}).forEach(ml => allMonths.add(ml));
+  });
+
   /* Ordenar cronologicamente */
+  const mesMap = {ENE:0,FEB:1,MAR:2,ABR:3,MAY:4,JUN:5,JUL:6,AGO:7,SEP:8,OCT:9,NOV:10,DIC:11};
   const sorted = Array.from(allMonths).sort((a,b) => {
     const [ma,ya] = a.split('-'); const [mb,yb] = b.split('-');
-    const mesMap = {ENE:0,FEB:1,MAR:2,ABR:3,MAY:4,JUN:5,JUL:6,AGO:7,SEP:8,OCT:9,NOV:10,DIC:11};
     return (parseInt(ya)*12+(mesMap[ma]||0)) - (parseInt(yb)*12+(mesMap[mb]||0));
   });
   absData.monthCols = sorted;
   absData.flujosGenerados = true;
+  absData.flujosStats = { conFecha, sinFecha, yaLiquidados };
   return absData;
 }
 
@@ -2153,12 +2166,10 @@ async function handleAbsorcionUpload(){
       parsed = mergeAbsorcionConPrecios(parsed, precios);
     }
 
-    /* Generar flujos sinteticos si no hay columnas de mes */
-    if(!parsed.monthCols || parsed.monthCols.length===0){
-      if(progFill) progFill.style.width='65%';
-      setAbsStatus('Generando flujos esperados proyectados...','info');
-      parsed = generarFlujosSinteticos(parsed);
-    }
+    /* Generar flujos de liquidacion a escritura usando fechas de columna BM */
+    if(progFill) progFill.style.width='65%';
+    setAbsStatus('Generando flujos de liquidacion (fechas de columna BM)...','info');
+    parsed = generarFlujosLiquidacion(parsed);
 
     if(progFill) progFill.style.width='75%';
     setAbsStatus('Guardando en Supabase...','info');
@@ -2173,7 +2184,10 @@ async function handleAbsorcionUpload(){
     const statsMsg = parsed.mergeStats
       ? ` — Cruce: ${parsed.mergeStats.matched} OK, ${parsed.mergeStats.priceDiffs} difs de precio, ${parsed.mergeStats.soloMega} sin precio`
       : '';
-    const flujosMsg = parsed.flujosGenerados ? ' — Flujos proyectados generados' : '';
+    const fs = parsed.flujosStats;
+    const flujosMsg = parsed.flujosGenerados
+      ? ` — Flujos: ${fs?.conFecha||0} con fecha, ${fs?.sinFecha||0} sin fecha, ${fs?.yaLiquidados||0} ya liquidados`
+      : '';
     setAbsStatus('Procesado: '+parsed.unidades.length+' unidades.'+statsMsg+flujosMsg,'ok');
   } catch(ex){
     setAbsStatus('Error: '+(ex.message||String(ex)),'err');
@@ -2623,7 +2637,7 @@ function renderTab(id, tabData, logradoData) {
   for(const row of ROWS){
     if(row.type==='section'){
       curSec=row.key;
-      const collapsed=(_secStates[id+'_'+row.key]===false);
+      const collapsed=(_secStates[id+'_'+row.key]!==true);
       const lbl = currentData.labels?.[row.key] || currentData.scLabels?.[row.key] || row.label;
       const scTag = row.sc ? `<span class="sc-tag">${row.sc}</span>` : '';
       /* Total de la seccion — siempre visible en el header */
@@ -2654,7 +2668,7 @@ function renderTab(id, tabData, logradoData) {
 
     const trCls=row.type==='total'?'row-total':row.type==='hero'?'row-hero':row.type==='pct'?'row-pct':row.type==='expandable'?'row-expandable':'';
     const secAttr=curSec?` data-sec="${curSec}"`:'';
-    const secHidden=(_secStates[id+'_'+curSec]===false)?' style="display:none"':'';
+    const secHidden=(_secStates[id+'_'+curSec]!==true)?' style="display:none"':'';
     let onclk='';
     if(row.type==='expandable') onclk=` onclick="toggleDetail(this,'${id}','${row.key}')"`;
 
@@ -2818,7 +2832,7 @@ function toggleVertientes(){
 /* ===== SECCIONES COLAPSABLES ===== */
 function toggleSection(tabId, secKey, headerRow){
   const stKey=tabId+'_'+secKey;
-  const isOpen=(_secStates[stKey]!==false);
+  const isOpen=(_secStates[stKey]===true);
   const rows=document.querySelectorAll(`#panel-${tabId} tr[data-sec="${secKey}"]`);
   const arrow=headerRow.querySelector('.sec-arrow');
   if(isOpen){
@@ -3076,7 +3090,7 @@ async function activateVersion(verId){
   const{error:e2}=await supa.from('cierre_versiones').update({is_active:true}).eq('id',verId);
   if(e2)return{error:e2.message};
   const{data}=await supa.from('cierre_versiones').select('version_label,data').eq('id',verId).single();
-  if(data){currentData=data.data;activeVerId=verId;document.getElementById('ver-indicator').textContent=data.version_label;document.getElementById('ver-live').style.display='block';renderAll();}
+  if(data){currentData=rellenarFaltantes(data.data, EMBEDDED_DATA);activeVerId=verId;document.getElementById('ver-indicator').textContent=data.version_label;document.getElementById('ver-live').style.display='block';recalculate('e1');recalculate('e2');recalculate('cons');renderAll();}
   await loadVersionHistory();
   return{ok:true};
 }
