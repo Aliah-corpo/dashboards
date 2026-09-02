@@ -294,12 +294,112 @@ table.data.hide-col-6 tr>:nth-child(8){display:none;}
 .label-inp:focus{border-color:var(--olive);}
 .label-sec-hdr{font-size:10px;font-weight:700;color:var(--olive);text-transform:uppercase;letter-spacing:.06em;padding:8px 0 2px;display:block;}
 
+/* BREAKDOWN HC/SC */
+.bkd-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap;}
+.bkd-header-left{flex:1;min-width:0;}
+.bkd-title{font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;margin:0 0 4px;color:var(--charcoal);}
+.bkd-subtitle{font-size:12px;color:var(--muted);margin:0;}
+.bkd-semaforo{padding:12px 18px;border-radius:var(--radius);font-size:13px;font-weight:700;font-family:'Outfit',sans-serif;
+  display:flex;flex-direction:column;align-items:flex-end;gap:2px;white-space:nowrap;}
+.bkd-semaforo .bkd-sem-label{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;}
+.bkd-semaforo .bkd-sem-value{font-size:22px;line-height:1.1;}
+.bkd-semaforo.verde{background:rgba(72,77,49,.08);border:1px solid rgba(72,77,49,.25);color:var(--green);}
+.bkd-semaforo.ambar{background:rgba(176,141,87,.1);border:1px solid rgba(176,141,87,.4);color:var(--brass-dark);}
+.bkd-semaforo.rojo{background:rgba(154,59,59,.08);border:1px solid rgba(154,59,59,.3);color:var(--error);}
+.bkd-reconciliacion{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+.bkd-rec-tile{flex:1;min-width:160px;background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.bkd-rec-tile .bkd-rec-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 4px;}
+.bkd-rec-tile .bkd-rec-value{font-size:20px;font-weight:700;font-family:'Outfit',sans-serif;margin:0;color:var(--charcoal);}
+.bkd-rec-tile.ancla{border-left:3px solid var(--brass);}
+.bkd-rec-tile.ancla .bkd-rec-value{color:var(--brass-dark);}
+.bkd-bars{margin-bottom:20px;}
+.bkd-bar-row{margin-bottom:10px;}
+.bkd-bar-label{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;font-weight:600;margin-bottom:4px;}
+.bkd-bar-label .pct{color:var(--muted);font-weight:500;}
+.bkd-bar-track{background:var(--border);border-radius:6px;height:22px;overflow:hidden;}
+.bkd-bar-fill{height:100%;border-radius:6px 0 0 6px;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:700;color:#fff;transition:width .4s ease;}
+.bkd-bar-fill.hc{background:var(--olive);}
+.bkd-bar-fill.sc{background:var(--brass);}
+.bkd-tbl-wrap{overflow-x:auto;}
+table.bkd-data{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;}
+table.bkd-data th{background:var(--charcoal);color:var(--white);padding:9px 14px;text-align:right;font-weight:600;font-size:12px;white-space:nowrap;}
+table.bkd-data th:first-child{text-align:left;border-radius:10px 0 0 0;}
+table.bkd-data th:last-child{border-radius:0 10px 0 0;}
+table.bkd-data td{padding:7px 14px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;vertical-align:top;}
+table.bkd-data td:first-child{text-align:left;font-weight:500;}
+table.bkd-data tr.bkd-total td{font-weight:700;background:rgba(164,172,140,.06);}
+table.bkd-data tr.bkd-brecha td{font-weight:700;background:rgba(176,141,87,.08);color:var(--brass-dark);font-size:14px;}
+table.bkd-data tr:hover td{background:rgba(164,172,140,.04);}
+table.bkd-data tr.bkd-total:hover td{background:rgba(164,172,140,.1);}
+table.bkd-data tr.bkd-brecha:hover td{background:rgba(176,141,87,.12);}
+.bkd-detail-btn{background:none;border:none;color:var(--brass);cursor:pointer;font-size:11px;font-weight:700;padding:0;text-decoration:underline;font-family:'DM Sans',sans-serif;}
+.bkd-detail-btn:hover{color:var(--brass-dark);}
+.bkd-modal-overlay{position:fixed;inset:0;background:rgba(40,40,35,.55);backdrop-filter:blur(3px);z-index:2000;
+  display:flex;align-items:center;justify-content:center;padding:24px;}
+.bkd-detail-modal{background:var(--white);border-radius:var(--radius);box-shadow:0 20px 60px rgba(0,0,0,.22);
+  width:560px;max-width:calc(100vw - 48px);max-height:80vh;overflow-y:auto;padding:28px;}
+.bkd-detail-modal h3{font-size:15px;font-weight:700;margin:0 0 6px;font-family:'Outfit',sans-serif;}
+.bkd-detail-modal .bkd-det-source{font-size:11px;color:var(--muted);margin:0 0 16px;}
+.bkd-detail-modal table{width:100%;}
+.bkd-detail-modal .bkd-det-close{position:absolute;top:16px;right:16px;background:none;border:none;cursor:pointer;font-size:17px;color:var(--muted);padding:2px 7px;border-radius:6px;line-height:1;}
+.bkd-detail-modal .bkd-det-close:hover{background:var(--border);}
+
+/* ABSORCION Y FLUJOS — Tab 5 */
+.abs-hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px;}
+.abs-hero .stat-tile{position:relative;}
+.abs-phase-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;}
+.abs-sub-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.abs-torres-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px;}
+.abs-torre-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.abs-torre-card h4{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;margin:0 0 8px;color:var(--charcoal);}
+.abs-torre-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid var(--border);}
+.abs-torre-row:last-child{border-bottom:none;}
+.abs-torre-row .lbl{color:var(--muted);}
+.abs-torre-row .val{font-weight:600;}
+.abs-cobro-row{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+.abs-cobro-label{font-size:12px;font-weight:600;min-width:120px;}
+.abs-cobro-bar{flex:1;background:var(--border);border-radius:6px;height:20px;overflow:hidden;}
+.abs-cobro-fill{height:100%;border-radius:6px 0 0 6px;display:flex;align-items:center;padding:0 8px;font-size:10px;font-weight:700;color:#fff;transition:width .4s ease;}
+.abs-cobro-fill.cobrado{background:var(--olive);}
+.abs-cobro-fill.vencido{background:var(--error);}
+.abs-cobro-fill.por-cobrar{background:var(--brass);}
+.abs-cobro-val{font-size:11px;font-weight:600;min-width:90px;text-align:right;}
+.abs-flujos-tbl-wrap{overflow-x:auto;max-height:500px;overflow-y:auto;}
+table.abs-flujos{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;}
+table.abs-flujos th{background:var(--charcoal);color:var(--white);padding:7px 10px;text-align:right;font-weight:600;font-size:11px;white-space:nowrap;position:sticky;top:0;z-index:1;}
+table.abs-flujos th:first-child{text-align:left;border-radius:10px 0 0 0;position:sticky;left:0;z-index:2;background:var(--charcoal);}
+table.abs-flujos th:last-child{border-radius:0 10px 0 0;}
+table.abs-flujos td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;}
+table.abs-flujos td:first-child{text-align:left;font-weight:500;position:sticky;left:0;background:var(--white);z-index:1;}
+table.abs-flujos tr.abs-flujos-total td{font-weight:700;background:rgba(164,172,140,.08);}
+table.abs-flujos tr:hover td{background:rgba(164,172,140,.04);}
+table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
+.abs-status-chip{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:9px;}
+.abs-status-chip.vendido{background:rgba(72,77,49,.12);color:var(--green);}
+.abs-status-chip.disponible{background:rgba(176,141,87,.12);color:var(--brass-dark);}
+.abs-status-chip.apartado{background:rgba(164,172,140,.15);color:var(--olive);}
+.abs-upload-progress{width:100%;height:6px;background:var(--border);border-radius:3px;margin:8px 0;overflow:hidden;display:none;}
+.abs-upload-progress.on{display:block;}
+.abs-upload-progress .fill{height:100%;background:var(--olive);border-radius:3px;transition:width .3s ease;width:0%;}
+.abs-tab-nav{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0;}
+.abs-tab-btn{padding:8px 16px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.abs-tab-btn:hover{color:var(--charcoal);}
+.abs-tab-btn.on{color:var(--olive);border-bottom-color:var(--brass);}
+.abs-panel{display:none;}
+.abs-panel.on{display:block;}
+
 @media(max-width:700px){
   .hero-row{grid-template-columns:1fr 1fr;}
   .stat-value.hero{font-size:30px;}
   .logrado-grid,.vertientes-grid,.equity-row{grid-template-columns:1fr;}
   .modal-backdrop{align-items:flex-end;justify-content:center;padding:0;}
   .admin-modal{width:100%;max-width:100%;border-radius:var(--radius) var(--radius) 0 0;max-height:88vh;}
+  .bkd-header{flex-direction:column;}
+  .bkd-semaforo{align-items:flex-start;width:100%;}
+  .bkd-reconciliacion{flex-direction:column;}
+  .bkd-detail-modal{width:100%;max-width:100%;border-radius:var(--radius) var(--radius) 0 0;}
+  .abs-sub-grid{grid-template-columns:1fr;}
+  .abs-torres-grid{grid-template-columns:1fr 1fr;}
 }
 </style>
 </head>
@@ -773,6 +873,8 @@ async function arrancarSesion(){
   if(currentData.palancas.cpcEtapa === undefined) currentData.palancas.cpcEtapa = PAL_DEFAULT.cpcEtapa || 'e2';
   recalculate('e1'); recalculate('e2'); recalculate('cons');
   fijarRefConsolidado();
+  await cargarBreakdown();
+  await cargarAbsorcion();
   pintarBannerCorte();
   pintarPalancas();
   renderAll();
@@ -947,31 +1049,813 @@ async function guardarPalancas(){
 
 
 /* ===== PAGINA 4: BREAKDOWN HC/SC  (bloque 4) ===== */
+
+/* Breakdown default data — embebido como semilla inicial.
+   Se sobreescribe con lo que venga de Supabase (breakdown_versiones). */
+const BREAKDOWN_DEFAULT = {
+  presIni: 614876152.19,
+  hc: {pres: 710662081.53, ejer: 652952217},
+  sc: {pres: 409447679, ejer: 355635301},
+  fecha: '2026-08-26',
+  partidas: [
+    {key:'desfalcos',      name:'Desfalcos',                      monto:11000000,    detail:{source:'Hoja Extras — Resumen PPto ago26', items:[{name:'Desfalcos',monto:11000000}]}},
+    {key:'condiciones',    name:'Condiciones generales',           monto:4816244,     group:'aliah', detail:{source:'Hoja Extras', items:[{name:'Condiciones generales',monto:4816244}]}},
+    {key:'extras',         name:'Extras / Cambios de alcance',     monto:13327157,    group:'aliah', detail:{source:'Hoja Extras', items:[{name:'Extras / Cambios de alcance',monto:13327157}]}},
+    {key:'upgrades',       name:'Mejoras Upgrades',                monto:14501778,    detail:{source:'Hoja Extras', items:[{name:'Mejoras Upgrades',monto:14501778}]}},
+    {key:'mej_comercial',  name:'Mejoras comercial',               monto:9161835,     detail:{source:'Hoja Extras', items:[{name:'Mejoras comercial',monto:9161835}]}},
+    {key:'equipamiento',   name:'Equipamiento (por recuperar)',    monto:6531611,     detail:{source:'Hoja Extras', items:[{name:'Equipamiento (por recuperar)',monto:6531611}]}},
+    {key:'inflacion',      name:'Inflacion',                       monto:3472579,     detail:{source:'Derivado de analisis ago26', items:[{name:'Inflacion estimada',monto:3472579}]}}
+  ]
+};
+
+/* El ancla siempre es costoObra del ultimo escenario de E1 (construccion pura, sin CPC) */
+function getAnclaBreakdown(){
+  if(!currentData.e1?.data?.costoObra) return BREAKDOWN_DEFAULT.hc.pres;
+  const arr = currentData.e1.data.costoObra;
+  return arr[arr.length - 1] || BREAKDOWN_DEFAULT.hc.pres;
+}
+
+function getBreakdownData(){
+  return currentData.breakdown || BREAKDOWN_DEFAULT;
+}
+
+function calcBreakdown(bd){
+  const ancla = getAnclaBreakdown();
+  const presIni = bd.presIni || BREAKDOWN_DEFAULT.presIni;
+  const partidas = bd.partidas || [];
+  const sumaPartidas = partidas.reduce((s,p) => s + (p.monto||0), 0);
+  const brecha = ancla - presIni - sumaPartidas;
+  return {ancla, presIni, partidas, sumaPartidas, brecha};
+}
+
+function buildBreakdownHtml(bd){
+  const {ancla, presIni, partidas, sumaPartidas, brecha} = calcBreakdown(bd);
+
+  /* Semaforo */
+  const abs = Math.abs(brecha);
+  let semClass, semLabel;
+  if(abs < 1){
+    semClass='verde'; semLabel='Conciliado';
+  } else if(brecha > 0){
+    semClass='ambar'; semLabel='Falta explicar';
+  } else {
+    semClass='rojo'; semLabel='Excede por';
+  }
+
+  /* HC / SC bars */
+  const hc = bd.hc || BREAKDOWN_DEFAULT.hc;
+  const sc = bd.sc || BREAKDOWN_DEFAULT.sc;
+  const hcPct = hc.pres ? (hc.ejer / hc.pres * 100) : 0;
+  const scPct = sc.pres ? (sc.ejer / sc.pres * 100) : 0;
+
+  let html = `
+  <div class="card">
+    <div class="bkd-header">
+      <div class="bkd-header-left">
+        <h2 class="bkd-title">Detalle de Evolucion Presupuestal — Etapa 1</h2>
+        <p class="bkd-subtitle">Corte: ${bd.fecha || 'sin fecha'} &nbsp;&middot;&nbsp; Ancla: Costo Obra E1 del escenario activo</p>
+      </div>
+      <div class="bkd-semaforo ${semClass}">
+        <span class="bkd-sem-label">${semLabel}</span>
+        <span class="bkd-sem-value">${abs < 1 ? '$0' : fmtCur(abs)}</span>
+      </div>
+    </div>
+
+    <div class="bkd-reconciliacion">
+      <div class="bkd-rec-tile ancla">
+        <p class="bkd-rec-label">Ancla (Costo Obra E1)</p>
+        <p class="bkd-rec-value">${fmtCur(ancla)}</p>
+      </div>
+      <div class="bkd-rec-tile">
+        <p class="bkd-rec-label">Presupuesto inicial</p>
+        <p class="bkd-rec-value">${fmtCur(presIni)}</p>
+      </div>
+      <div class="bkd-rec-tile">
+        <p class="bkd-rec-label">Variacion explicada</p>
+        <p class="bkd-rec-value">${fmtCur(sumaPartidas)}</p>
+      </div>
+    </div>
+
+    <div class="bkd-bars">
+      <div class="bkd-bar-row">
+        <div class="bkd-bar-label"><span>Hard Cost</span><span class="pct">${fmtCur(hc.ejer)} de ${fmtCur(hc.pres)} (${hcPct.toFixed(1)}%)</span></div>
+        <div class="bkd-bar-track"><div class="bkd-bar-fill hc" style="width:${Math.min(hcPct,100).toFixed(1)}%"></div></div>
+      </div>
+      <div class="bkd-bar-row">
+        <div class="bkd-bar-label"><span>Soft Cost</span><span class="pct">${fmtCur(sc.ejer)} de ${fmtCur(sc.pres)} (${scPct.toFixed(1)}%)</span></div>
+        <div class="bkd-bar-track"><div class="bkd-bar-fill sc" style="width:${Math.min(scPct,100).toFixed(1)}%"></div></div>
+      </div>
+    </div>
+
+    <div class="bkd-tbl-wrap">
+      <table class="bkd-data">
+        <thead><tr>
+          <th>Concepto</th>
+          <th>Monto</th>
+          <th>Saldo acumulado</th>
+          <th></th>
+        </tr></thead>
+        <tbody>
+          <tr class="bkd-total"><td>Presupuesto inicial</td><td>${fmtCur(presIni)}</td><td>${fmtCur(ancla - presIni)}</td><td></td></tr>`;
+
+  /* Partidas — saldo descendente desde la variacion total */
+  let saldo = ancla - presIni;
+  for(const p of partidas){
+    saldo -= (p.monto||0);
+    const detBtn = p.detail
+      ? `<button class="bkd-detail-btn" onclick="showBkdDetail('${p.key}')">Detalle</button>`
+      : '';
+    html += `<tr><td>${p.name}${p.group==='aliah'?' <span style="font-size:10px;color:var(--muted)">(ALIAH)</span>':''}</td>
+      <td style="color:var(--error)">-${fmtCur(p.monto||0)}</td>
+      <td>${fmtCur(saldo)}</td>
+      <td>${detBtn}</td></tr>`;
+  }
+
+  /* Fila de brecha */
+  html += `<tr class="bkd-brecha"><td>Brecha sin explicar</td><td>${fmtCur(brecha)}</td><td></td><td></td></tr>`;
+
+  html += `</tbody></table></div>`;
+
+  /* Boton para agregar partida (solo admin) */
+  if(isAdmin && !enHistorico){
+    html += `<button class="add-partida" onclick="addBreakdownPartida()" style="margin-top:14px">+ Agregar concepto</button>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+function showBkdDetail(key){
+  const bd = getBreakdownData();
+  const p = (bd.partidas||[]).find(x=>x.key===key);
+  if(!p || !p.detail) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'bkd-modal-overlay';
+  overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
+
+  let tbl = '';
+  if(p.detail.items && p.detail.items.length){
+    tbl = '<table class="bkd-data" style="margin-top:12px"><thead><tr><th>Subconcepto</th><th>Monto</th></tr></thead><tbody>';
+    let sum = 0;
+    for(const it of p.detail.items){
+      sum += (it.monto||0);
+      tbl += `<tr><td>${it.name}</td><td>${fmtCur(it.monto||0)}</td></tr>`;
+    }
+    tbl += `<tr class="bkd-total"><td>Total</td><td>${fmtCur(sum)}</td></tr></tbody></table>`;
+  }
+
+  overlay.innerHTML = `<div class="bkd-detail-modal" style="position:relative;">
+    <button class="bkd-det-close" onclick="this.closest('.bkd-modal-overlay').remove()">&#10005;</button>
+    <h3>${p.name}</h3>
+    <p class="bkd-det-source">Fuente: ${p.detail.source||'sin especificar'}</p>
+    ${tbl}
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function addBreakdownPartida(){
+  const name = prompt('Nombre del concepto:');
+  if(!name) return;
+  const montoStr = prompt('Monto (sin signo, en pesos):');
+  if(!montoStr) return;
+  const monto = parseFloat(montoStr.replace(/[,$\s]/g,''));
+  if(isNaN(monto) || monto <= 0){ alert('Monto invalido'); return; }
+
+  const bd = getBreakdownData();
+  if(!bd.partidas) bd.partidas = [];
+  const key = 'bkd_' + Date.now();
+  bd.partidas.push({key, name: name.trim(), monto, detail:null});
+  currentData.breakdown = bd;
+
+  await guardarBreakdown('Alta de concepto: ' + name.trim());
+  renderBreakdown();
+}
+
+async function guardarBreakdown(motivo){
+  if(!supa || !isAdmin) return;
+  const bd = getBreakdownData();
+  const antes = JSON.stringify(currentData._breakdownPrev || null);
+  const despues = JSON.stringify(bd);
+
+  /* Guardar en breakdown_versiones */
+  try {
+    const corte = corteActivo || new Date().toISOString().slice(0,10);
+
+    /* Buscar version activa para este dashboard */
+    const {data:existing} = await supa.from('breakdown_versiones')
+      .select('id')
+      .eq('dashboard_id', DASHBOARD_ID)
+      .eq('is_active', true)
+      .limit(1);
+
+    if(existing && existing.length){
+      await supa.from('breakdown_versiones')
+        .update({data: bd, fecha_corte: corte, uploaded_by: userSession?.user?.email||'admin'})
+        .eq('id', existing[0].id);
+    } else {
+      await supa.from('breakdown_versiones').insert({
+        dashboard_id: DASHBOARD_ID,
+        data: bd,
+        fecha_corte: corte,
+        uploaded_by: userSession?.user?.email||'admin',
+        is_active: true
+      });
+    }
+
+    await bitacora('breakdown','partida','breakdown', antes, despues, null, motivo||'Actualizacion breakdown');
+    currentData._breakdownPrev = JSON.parse(JSON.stringify(bd));
+  } catch(e){
+    console.warn('guardarBreakdown:', e);
+    alert('No se pudo guardar el breakdown: ' + (e.message||String(e)));
+  }
+}
+
+async function cargarBreakdown(){
+  if(!supa) return;
+  try {
+    const {data} = await supa.from('breakdown_versiones')
+      .select('data')
+      .eq('dashboard_id', DASHBOARD_ID)
+      .eq('is_active', true)
+      .limit(1);
+    if(data && data.length && data[0].data){
+      currentData.breakdown = data[0].data;
+      currentData._breakdownPrev = JSON.parse(JSON.stringify(data[0].data));
+    }
+  } catch(e){ console.warn('cargarBreakdown:', e); }
+}
+
 function renderBreakdown(){
   const el = document.getElementById('panel-breakdown');
   if(!el) return;
-  if(!currentData.breakdown){
-    el.innerHTML = `<div class="card"><p class="card-title">Breakdown HC / SC</p>
-      <p style="color:var(--muted);font-size:14px;margin:0">
-      Pendiente de cargar. Esta pagina desglosa la expectativa de Costo Obra
-      del corte vigente en sus partidas.</p></div>`;
-    return;
-  }
-  el.innerHTML = buildBreakdownHtml(currentData.breakdown);
+  const bd = getBreakdownData();
+  el.innerHTML = buildBreakdownHtml(bd);
 }
 
 /* ===== PAGINA 5: ABSORCION Y FLUJOS  (bloque 5) ===== */
+
+/* ---------- CONSTANTES DE ABSORCION ---------- */
+const ABS_TORRES_FASE = {
+  'A':{fase:1,deptos:67}, 'B':{fase:1,deptos:96}, 'C':{fase:1,deptos:49},
+  'D':{fase:2,deptos:149},'E':{fase:2,deptos:100}
+};
+const ABS_MESES_CORTOS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+/* ---------- CARGAR ABSORCION DESDE SUPABASE ---------- */
+async function cargarAbsorcion(){
+  if(!supa) return;
+  try {
+    const {data} = await supa.from('absorcion_versiones')
+      .select('data,fecha_corte')
+      .eq('dashboard_id', DASHBOARD_ID)
+      .eq('is_active', true)
+      .limit(1);
+    if(data && data.length && data[0].data){
+      currentData.absorcion = data[0].data;
+    }
+  } catch(e){ console.warn('cargarAbsorcion:', e); }
+}
+
+/* ---------- GUARDAR ABSORCION EN SUPABASE ---------- */
+async function guardarAbsorcion(motivo){
+  if(!supa || !isAdmin) return;
+  try {
+    const corte = corteActivo || new Date().toISOString().slice(0,10);
+    const absData = currentData.absorcion;
+    const {data:existing} = await supa.from('absorcion_versiones')
+      .select('id')
+      .eq('dashboard_id', DASHBOARD_ID)
+      .eq('is_active', true)
+      .limit(1);
+
+    if(existing && existing.length){
+      await supa.from('absorcion_versiones')
+        .update({data: absData, fecha_corte: corte, uploaded_by: userSession?.user?.email||'admin'})
+        .eq('id', existing[0].id);
+    } else {
+      await supa.from('absorcion_versiones').insert({
+        dashboard_id: DASHBOARD_ID,
+        data: absData,
+        fecha_corte: corte,
+        uploaded_by: userSession?.user?.email||'admin',
+        is_active: true
+      });
+    }
+    await bitacora('absorcion','megasembrado','absorcion', null, JSON.stringify({unidades: absData.unidades?.length||0}), null, motivo||'Carga MEGASEMBRADO');
+  } catch(e){
+    console.warn('guardarAbsorcion:', e);
+    alert('No se pudo guardar absorcion: '+(e.message||String(e)));
+  }
+}
+
+/* ---------- PARSER MEGASEMBRADO (SheetJS browser) ---------- */
+function parseMegasembrado(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject('Error leyendo el archivo');
+    reader.onload = e => {
+      try {
+        const XL = window.XLSX; if(!XL){ reject('SheetJS no disponible'); return; }
+        const wb = XL.read(e.target.result, {type:'array', cellDates:true});
+        const ws = wb.Sheets['MEGASEMBRADO'];
+        if(!ws){ reject('Hoja "MEGASEMBRADO" no encontrada. Hojas disponibles: '+wb.SheetNames.slice(0,10).join(', ')); return; }
+
+        const raw = XL.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
+        if(raw.length < 10){ reject('Hoja MEGASEMBRADO con menos de 10 filas'); return; }
+
+        /* Detectar fila de headers: buscar "TORRE" o "Torre" */
+        let hdrIdx = -1;
+        for(let i=0; i<Math.min(15,raw.length); i++){
+          const row = raw[i];
+          if(!row) continue;
+          const joined = row.map(c=>String(c||'').toUpperCase()).join('|');
+          if(joined.includes('TORRE') && (joined.includes('DEPTO') || joined.includes('DEPARTAMENTO'))){
+            hdrIdx = i; break;
+          }
+        }
+        if(hdrIdx<0){ reject('No se encontro fila de headers con TORRE/DEPTO en MEGASEMBRADO'); return; }
+
+        const hdrs = raw[hdrIdx].map(h=>String(h||'').trim().toUpperCase());
+
+        /* Map column indices */
+        function findCol(...variants){
+          for(const v of variants){
+            const idx = hdrs.findIndex(h=>h.includes(v.toUpperCase()));
+            if(idx>=0) return idx;
+          }
+          return -1;
+        }
+
+        const colTorre     = findCol('TORRE');
+        const colDepto     = findCol('DEPTO','DEPARTAMENTO');
+        const colProto     = findCol('PROTOTIPO');
+        const colMetros    = findCol('METROS','M2','M²');
+        const colStatus    = findCol('STATUS VENTA','STATUS_VENTA','ESTATUS VENTA');
+        const colValor     = findCol('VALOR TOTAL');
+        const colValorM2   = findCol('VALOR M2','VALOR_M2','$/M2');
+        const colPropie    = findCol('NOMBRE_PROPIETARIO','PROPIETARIO','NOMBRE PROPIETARIO');
+        const colFirma     = findCol('FIRMA','FIRMA CONTRATO');
+        const colDeposito  = findCol('DEPOSITO','DEPOSITO M1');
+        const colPagoIni   = findCol('PAGO INICIAL');
+        const colDiferido  = findCol('PAGO DIFERIDO');
+        const colSaldoDif  = findCol('SALDO DIFERIDO');
+        const colAportado  = findCol('TOTAL APORTADO','TOTAL_APORTADO');
+        const colFechaIni  = findCol('FECHA INICIO','INICIO PAGOS');
+
+        /* Detectar columnas de meses (flujos) — buscan AGO-2026, SEP-2026, etc */
+        const monthCols = [];
+        for(let c=0; c<hdrs.length; c++){
+          const h = hdrs[c];
+          const m = h.match(/(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|OCT|NOV|DIC)[- ]?(\d{4})/);
+          if(m){
+            const mesMap = {ENE:0,FEB:1,MAR:2,ABR:3,MAY:4,JUN:5,JUL:6,AGO:7,SEP:8,OCT:9,NOV:10,DIC:11};
+            monthCols.push({col:c, mes:mesMap[m[1]], anio:parseInt(m[2]), label:m[1]+'-'+m[2]});
+          }
+        }
+
+        const gn = (row,c) => { if(c<0) return 0; const v=row[c]; if(v==null||v==='') return 0; if(typeof v==='number') return v; const n=parseFloat(String(v).replace(/[$,%\s,]/g,'')); return isNaN(n)?0:n; };
+        const gs = (row,c) => c<0?'':String(row[c]||'').trim();
+
+        const unidades = [];
+        for(let i=hdrIdx+1; i<raw.length; i++){
+          const r = raw[i];
+          if(!r) continue;
+          const torre = gs(r,colTorre);
+          if(!torre || torre.length>5) continue; /* filter junk rows */
+          const depto = gs(r,colDepto);
+          if(!depto) continue;
+
+          const statusRaw = gs(r,colStatus).toUpperCase();
+          let status = 'DISPONIBLE';
+          if(statusRaw.includes('VENDID') || statusRaw.includes('ESCRITUR') || statusRaw.includes('FIRMAD')) status='VENDIDO';
+          else if(statusRaw.includes('APARTAD') || statusRaw.includes('SEPARAD') || statusRaw.includes('RESERV')) status='APARTADO';
+          else if(statusRaw.includes('CANCEL')) status='CANCELADO';
+          else if(statusRaw.includes('DISPONIB') || statusRaw==='') status='DISPONIBLE';
+          else status = statusRaw || 'DISPONIBLE';
+
+          const u = {
+            torre, depto,
+            prototipo: gs(r,colProto),
+            metros: gn(r,colMetros),
+            status,
+            valorTotal: gn(r,colValor),
+            valorM2: gn(r,colValorM2),
+            propietario: gs(r,colPropie),
+            firma: gs(r,colFirma),
+            deposito: gn(r,colDeposito),
+            pagoInicial: gn(r,colPagoIni),
+            pagoDiferido: gn(r,colDiferido),
+            saldoDiferido: gn(r,colSaldoDif),
+            totalAportado: gn(r,colAportado),
+            flujos: {}
+          };
+
+          /* flujos mensuales */
+          for(const mc of monthCols){
+            const val = gn(r, mc.col);
+            if(val !== 0) u.flujos[mc.label] = val;
+          }
+
+          unidades.push(u);
+        }
+
+        if(!unidades.length){ reject('No se encontraron unidades en MEGASEMBRADO'); return; }
+
+        resolve({
+          unidades,
+          monthCols: monthCols.map(m=>m.label),
+          fechaParseo: new Date().toISOString(),
+          archivoHojas: wb.SheetNames.length
+        });
+      } catch(ex){ reject(ex.message||String(ex)); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+/* ---------- COMPUTAR VISTAS DESDE UNIDADES PARSEADAS ---------- */
+function computeAbsorcionViews(absData){
+  const u = absData.unidades || [];
+  const monthLabels = absData.monthCols || [];
+
+  /* --- 1. ESTADO DE ABSORCION por torre/fase --- */
+  const torreMap = {};
+  u.forEach(unit => {
+    const t = unit.torre.toUpperCase().replace(/[^A-Z]/g,'');
+    if(!torreMap[t]) torreMap[t] = {torre:t, total:0, vendidos:0, apartados:0, disponibles:0, cancelados:0, valorTotal:0, valorVendido:0, metros:0};
+    torreMap[t].total++;
+    torreMap[t].metros += unit.metros||0;
+    torreMap[t].valorTotal += unit.valorTotal||0;
+    if(unit.status==='VENDIDO'){ torreMap[t].vendidos++; torreMap[t].valorVendido += unit.valorTotal||0; }
+    else if(unit.status==='APARTADO') torreMap[t].apartados++;
+    else if(unit.status==='CANCELADO') torreMap[t].cancelados++;
+    else torreMap[t].disponibles++;
+  });
+
+  const torres = Object.values(torreMap).sort((a,b)=>a.torre.localeCompare(b.torre));
+
+  /* Fase grouping */
+  const fases = [{fase:1,torres:[],total:0,vendidos:0,apartados:0,disponibles:0,valorTotal:0,valorVendido:0},
+                 {fase:2,torres:[],total:0,vendidos:0,apartados:0,disponibles:0,valorTotal:0,valorVendido:0}];
+  torres.forEach(t => {
+    const f = ABS_TORRES_FASE[t.torre]?.fase || (t.torre<='C'?1:2);
+    const idx = f===1?0:1;
+    fases[idx].torres.push(t.torre);
+    fases[idx].total += t.total;
+    fases[idx].vendidos += t.vendidos;
+    fases[idx].apartados += t.apartados;
+    fases[idx].disponibles += t.disponibles;
+    fases[idx].valorTotal += t.valorTotal;
+    fases[idx].valorVendido += t.valorVendido;
+  });
+
+  /* --- 2. ABSORCION LOGRADA Y POR LOGRAR --- */
+  const fasesLogrado = fases.map(f => {
+    const cobrado = u.filter(x=> fases[f.fase===1?0:1].torres.includes(x.torre.toUpperCase().replace(/[^A-Z]/g,'')) && x.status==='VENDIDO')
+      .reduce((s,x)=>s+(x.totalAportado||0),0);
+    const porCobrarTiempo = u.filter(x=> fases[f.fase===1?0:1].torres.includes(x.torre.toUpperCase().replace(/[^A-Z]/g,'')) && x.status==='VENDIDO')
+      .reduce((s,x)=>s+Math.max(0,(x.valorTotal||0)-(x.totalAportado||0)-(x.saldoDiferido||0)),0);
+    const vencido = u.filter(x=> fases[f.fase===1?0:1].torres.includes(x.torre.toUpperCase().replace(/[^A-Z]/g,'')) && x.status==='VENDIDO')
+      .reduce((s,x)=>s+(x.saldoDiferido||0),0);
+    /* Correccion: Valor de liberacion Fase 2 + $125,000,000.02 */
+    let valorLib = f.valorTotal;
+    if(f.fase===2) valorLib += 125000000.02;
+    const porLograr = valorLib - f.valorVendido;
+    return { fase:f.fase, valorTotal:valorLib, logrado:f.valorVendido, porLograr, cobrado, porCobrarTiempo, vencido };
+  });
+
+  /* --- 3. FLUJOS ESPERADOS POR MES --- */
+  const flujosPorMes = {};
+  monthLabels.forEach(ml => { flujosPorMes[ml] = 0; });
+  u.forEach(unit => {
+    for(const [ml,val] of Object.entries(unit.flujos||{})){
+      flujosPorMes[ml] = (flujosPorMes[ml]||0) + val;
+    }
+  });
+
+  /* Flujos por fase y mes */
+  const flujosFase = [{fase:1, meses:{}},{fase:2, meses:{}}];
+  monthLabels.forEach(ml => { flujosFase[0].meses[ml]=0; flujosFase[1].meses[ml]=0; });
+  u.forEach(unit => {
+    const t = unit.torre.toUpperCase().replace(/[^A-Z]/g,'');
+    const fIdx = (ABS_TORRES_FASE[t]?.fase||1)===1?0:1;
+    for(const [ml,val] of Object.entries(unit.flujos||{})){
+      flujosFase[fIdx].meses[ml] = (flujosFase[fIdx].meses[ml]||0) + val;
+    }
+  });
+
+  return {
+    torres, fases, fasesLogrado, flujosPorMes, flujosFase, monthLabels,
+    totalUnidades: u.length,
+    totalVendidos: u.filter(x=>x.status==='VENDIDO').length,
+    totalApartados: u.filter(x=>x.status==='APARTADO').length,
+    totalDisponibles: u.filter(x=>x.status==='DISPONIBLE').length
+  };
+}
+
+/* ---------- RENDERER TAB 5 ---------- */
+function buildAbsorcionHtml(absData){
+  const views = computeAbsorcionViews(absData);
+  const fc = v => '$'+Math.round(v).toLocaleString('en-US');
+  const fp = (n,d) => d===0?'0%':(n/d*100).toFixed(1)+'%';
+  const totalValor = views.fases.reduce((s,f)=>s+f.valorTotal,0);
+  const totalVendido = views.fases.reduce((s,f)=>s+f.valorVendido,0);
+
+  let html = `
+  <div class="abs-tab-nav">
+    <button class="abs-tab-btn on" onclick="switchAbsTab(this,'abs-estado')">Estado de Absorcion</button>
+    <button class="abs-tab-btn" onclick="switchAbsTab(this,'abs-logrado')">Logrado y Por Lograr</button>
+    <button class="abs-tab-btn" onclick="switchAbsTab(this,'abs-flujos')">Flujos Esperados</button>
+  </div>`;
+
+  /* ===== SUB-TAB 1: ESTADO DE ABSORCION ===== */
+  html += `<div class="abs-panel on" id="abs-estado">`;
+
+  /* Hero tiles */
+  html += `<div class="abs-hero">
+    <div class="stat-tile"><p class="stat-label">Total Unidades</p><p class="stat-value hero">${views.totalUnidades}</p></div>
+    <div class="stat-tile"><p class="stat-label">Vendidas</p><p class="stat-value" style="color:var(--green)">${views.totalVendidos}</p><p class="stat-sub">${fp(views.totalVendidos,views.totalUnidades)} del inventario</p></div>
+    <div class="stat-tile"><p class="stat-label">Apartadas</p><p class="stat-value" style="color:var(--brass-dark)">${views.totalApartados}</p></div>
+    <div class="stat-tile"><p class="stat-label">Disponibles</p><p class="stat-value" style="color:var(--muted)">${views.totalDisponibles}</p></div>
+  </div>`;
+
+  /* Absorcion bar per phase */
+  html += `<div class="abs-sub-grid">`;
+  views.fases.forEach(f => {
+    const pctVend = f.total?f.vendidos/f.total*100:0;
+    const pctApart = f.total?f.apartados/f.total*100:0;
+    html += `<div class="card">
+      <p class="card-title">Fase ${f.fase} — Torres ${f.torres.join(', ')}</p>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+        <span style="font-size:13px;font-weight:600">${f.vendidos} vendidos de ${f.total}</span>
+        <span style="font-size:22px;font-weight:700;font-family:'Outfit',sans-serif;color:var(--olive)">${pctVend.toFixed(1)}%</span>
+      </div>
+      <div class="logrado-track" style="height:22px;margin-bottom:6px">
+        <div style="display:flex;height:100%">
+          <div style="width:${pctVend}%;background:var(--olive);border-radius:6px 0 0 6px;display:flex;align-items:center;padding:0 6px;font-size:10px;font-weight:700;color:#fff">${pctVend>8?f.vendidos:''}</div>
+          <div style="width:${pctApart}%;background:var(--brass);display:flex;align-items:center;padding:0 4px;font-size:10px;font-weight:700;color:#fff">${pctApart>5?f.apartados:''}</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);display:flex;gap:14px">
+        <span><span style="display:inline-block;width:8px;height:8px;background:var(--olive);border-radius:2px;margin-right:3px"></span>Vendidos ${f.vendidos}</span>
+        <span><span style="display:inline-block;width:8px;height:8px;background:var(--brass);border-radius:2px;margin-right:3px"></span>Apartados ${f.apartados}</span>
+        <span><span style="display:inline-block;width:8px;height:8px;background:var(--border);border-radius:2px;margin-right:3px"></span>Disponibles ${f.disponibles}</span>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin:10px 0 0">Valor inventario: ${fc(f.valorTotal)}</p>
+    </div>`;
+  });
+  html += `</div>`;
+
+  /* Torres grid */
+  html += `<div class="card"><p class="card-title">Detalle por Torre</p><div class="abs-torres-grid">`;
+  views.torres.forEach(t => {
+    const info = ABS_TORRES_FASE[t.torre]||{fase:'?'};
+    const pctAbs = t.total?((t.vendidos+t.apartados)/t.total*100).toFixed(1):0;
+    html += `<div class="abs-torre-card">
+      <h4>Torre ${t.torre} <span style="font-size:10px;color:var(--muted);font-weight:500">Fase ${info.fase}</span></h4>
+      <div class="abs-torre-row"><span class="lbl">Unidades</span><span class="val">${t.total}</span></div>
+      <div class="abs-torre-row"><span class="lbl">Vendidos</span><span class="val" style="color:var(--green)">${t.vendidos}</span></div>
+      <div class="abs-torre-row"><span class="lbl">Apartados</span><span class="val">${t.apartados}</span></div>
+      <div class="abs-torre-row"><span class="lbl">Disponibles</span><span class="val">${t.disponibles}</span></div>
+      <div class="abs-torre-row"><span class="lbl">Absorcion</span><span class="val">${pctAbs}%</span></div>
+      <div class="abs-torre-row"><span class="lbl">Valor total</span><span class="val">${fc(t.valorTotal)}</span></div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  /* Chart: absorcion por torre */
+  html += `<div class="card"><p class="card-title">Absorcion por Torre</p><div class="chart-wrap" style="height:220px"><canvas id="chart-abs-torres"></canvas></div></div>`;
+
+  html += `</div>`; /* close abs-estado */
+
+  /* ===== SUB-TAB 2: LOGRADO Y POR LOGRAR ===== */
+  html += `<div class="abs-panel" id="abs-logrado">`;
+
+  views.fasesLogrado.forEach(fl => {
+    const logPct = fl.valorTotal?fl.logrado/fl.valorTotal*100:0;
+    html += `<div class="card" style="margin-bottom:16px">
+      <p class="card-title">Fase ${fl.fase}</p>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px">
+        <span style="font-size:14px;font-weight:700;font-family:'Outfit',sans-serif">${fc(fl.logrado)}</span>
+        <span style="font-size:11px;color:var(--muted)">de ${fc(fl.valorTotal)}</span>
+      </div>
+      <div class="logrado-track" style="height:26px;margin-bottom:12px">
+        <div class="logrado-fill" style="width:${logPct}%;background:var(--olive)">${logPct.toFixed(1)}%</div>
+      </div>
+      <p style="font-size:12px;font-weight:600;margin:0 0 8px">Por lograr: ${fc(fl.porLograr)}</p>
+      <div class="abs-cobro-row">
+        <span class="abs-cobro-label">Cobrado</span>
+        <div class="abs-cobro-bar"><div class="abs-cobro-fill cobrado" style="width:${fl.logrado?(fl.cobrado/fl.logrado*100):0}%"></div></div>
+        <span class="abs-cobro-val">${fc(fl.cobrado)}</span>
+      </div>
+      <div class="abs-cobro-row">
+        <span class="abs-cobro-label">Por cobrar</span>
+        <div class="abs-cobro-bar"><div class="abs-cobro-fill por-cobrar" style="width:${fl.logrado?(fl.porCobrarTiempo/fl.logrado*100):0}%"></div></div>
+        <span class="abs-cobro-val">${fc(fl.porCobrarTiempo)}</span>
+      </div>
+      <div class="abs-cobro-row">
+        <span class="abs-cobro-label">Vencido</span>
+        <div class="abs-cobro-bar"><div class="abs-cobro-fill vencido" style="width:${fl.logrado?(fl.vencido/fl.logrado*100):0}%"></div></div>
+        <span class="abs-cobro-val">${fc(fl.vencido)}</span>
+      </div>
+    </div>`;
+  });
+
+  /* Chart: logrado vs por lograr (stacked bar) */
+  html += `<div class="card"><p class="card-title">Logrado vs Por Lograr</p><div class="chart-wrap" style="height:220px"><canvas id="chart-abs-logrado"></canvas></div></div>`;
+
+  html += `</div>`; /* close abs-logrado */
+
+  /* ===== SUB-TAB 3: FLUJOS ESPERADOS ===== */
+  html += `<div class="abs-panel" id="abs-flujos">`;
+
+  /* Chart: flujos mensuales */
+  html += `<div class="card"><p class="card-title">Flujos Esperados por Mes</p><div class="chart-wrap" style="height:260px"><canvas id="chart-abs-flujos"></canvas></div></div>`;
+
+  /* Table */
+  const ml = views.monthLabels;
+  if(ml.length){
+    html += `<div class="card"><p class="card-title">Tabla de Flujos</p><div class="abs-flujos-tbl-wrap"><table class="abs-flujos"><thead><tr><th>Concepto</th>`;
+    ml.forEach(m=>{ html+=`<th>${m}</th>`; });
+    html += `<th>Total</th></tr></thead><tbody>`;
+
+    /* Fase 1 */
+    let totF1 = 0;
+    html += `<tr style="background:rgba(164,172,140,.06)"><td style="font-weight:700">Fase 1</td>`;
+    ml.forEach(m=>{const v=views.flujosFase[0].meses[m]||0; totF1+=v; html+=`<td>${fc(v)}</td>`;});
+    html += `<td style="font-weight:700">${fc(totF1)}</td></tr>`;
+
+    /* Fase 2 */
+    let totF2 = 0;
+    html += `<tr style="background:rgba(176,141,87,.06)"><td style="font-weight:700">Fase 2</td>`;
+    ml.forEach(m=>{const v=views.flujosFase[1].meses[m]||0; totF2+=v; html+=`<td>${fc(v)}</td>`;});
+    html += `<td style="font-weight:700">${fc(totF2)}</td></tr>`;
+
+    /* Total */
+    let gt = 0;
+    html += `<tr class="abs-flujos-total"><td>Total</td>`;
+    ml.forEach(m=>{const v=views.flujosPorMes[m]||0; gt+=v; html+=`<td>${fc(v)}</td>`;});
+    html += `<td>${fc(gt)}</td></tr>`;
+
+    html += `</tbody></table></div></div>`;
+  }
+
+  html += `</div>`; /* close abs-flujos */
+
+  /* Fecha de parseo */
+  if(absData.fechaParseo){
+    html += `<p style="font-size:10px;color:var(--muted);margin-top:12px;text-align:right">Datos parseados: ${new Date(absData.fechaParseo).toLocaleString('es-MX')} &middot; ${absData.unidades?.length||0} unidades &middot; ${absData.archivoHojas||0} hojas</p>`;
+  }
+
+  return html;
+}
+
+/* ---------- SUB-TAB SWITCHING ---------- */
+function switchAbsTab(btn, panelId){
+  document.querySelectorAll('.abs-tab-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.abs-panel').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');
+  const panel = document.getElementById(panelId);
+  if(panel) panel.classList.add('on');
+}
+
+/* ---------- CHARTS ABSORCION ---------- */
+function renderAbsorcionCharts(absData){
+  const views = computeAbsorcionViews(absData);
+  /* Chart 1: Absorcion por torre (bar) */
+  const ctx1 = document.getElementById('chart-abs-torres');
+  if(ctx1){
+    if(charts['abs-torres']) charts['abs-torres'].destroy();
+    charts['abs-torres'] = new Chart(ctx1, {
+      type:'bar',
+      data:{
+        labels: views.torres.map(t=>'Torre '+t.torre),
+        datasets:[
+          {label:'Vendidos', data:views.torres.map(t=>t.vendidos), backgroundColor:'rgba(72,77,49,.75)'},
+          {label:'Apartados', data:views.torres.map(t=>t.apartados), backgroundColor:'rgba(176,141,87,.65)'},
+          {label:'Disponibles', data:views.torres.map(t=>t.disponibles), backgroundColor:'rgba(232,230,223,.8)'}
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11,family:"'DM Sans'"}}}},
+        scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:11,family:"'DM Sans'"}}},y:{stacked:true,beginAtZero:true,ticks:{font:{size:11}}}}}
+    });
+  }
+
+  /* Chart 2: Logrado vs Por Lograr */
+  const ctx2 = document.getElementById('chart-abs-logrado');
+  if(ctx2){
+    if(charts['abs-logrado']) charts['abs-logrado'].destroy();
+    charts['abs-logrado'] = new Chart(ctx2, {
+      type:'bar',
+      data:{
+        labels: views.fasesLogrado.map(f=>'Fase '+f.fase),
+        datasets:[
+          {label:'Logrado', data:views.fasesLogrado.map(f=>f.logrado), backgroundColor:'rgba(72,77,49,.75)'},
+          {label:'Por Lograr', data:views.fasesLogrado.map(f=>f.porLograr), backgroundColor:'rgba(176,141,87,.45)'}
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{position:'bottom',labels:{font:{size:11,family:"'DM Sans'"}}},
+        tooltip:{callbacks:{label:ctx=>{return ctx.dataset.label+': $'+Math.round(ctx.raw).toLocaleString('en-US');}}}},
+        scales:{x:{stacked:true,ticks:{callback:v=>'$'+Math.round(v/1e6)+'M',font:{size:11}}},y:{stacked:true,grid:{display:false},ticks:{font:{size:12,family:"'DM Sans'"}}}}}
+    });
+  }
+
+  /* Chart 3: Flujos mensuales (line/bar) */
+  const ctx3 = document.getElementById('chart-abs-flujos');
+  if(ctx3 && views.monthLabels.length){
+    if(charts['abs-flujos']) charts['abs-flujos'].destroy();
+    charts['abs-flujos'] = new Chart(ctx3, {
+      type:'bar',
+      data:{
+        labels: views.monthLabels,
+        datasets:[
+          {label:'Fase 1', data:views.monthLabels.map(m=>views.flujosFase[0].meses[m]||0), backgroundColor:'rgba(72,77,49,.65)'},
+          {label:'Fase 2', data:views.monthLabels.map(m=>views.flujosFase[1].meses[m]||0), backgroundColor:'rgba(176,141,87,.55)'}
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11,family:"'DM Sans'"}}},
+        tooltip:{callbacks:{label:ctx=>{return ctx.dataset.label+': $'+Math.round(ctx.raw).toLocaleString('en-US');}}}},
+        scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:10},maxRotation:45}},y:{stacked:true,beginAtZero:true,ticks:{callback:v=>'$'+Math.round(v/1e6)+'M',font:{size:11}}}}}
+    });
+  }
+}
+
+/* ---------- RENDER ABSORCION (called by renderAll) ---------- */
 function renderAbsorcion(){
   const el = document.getElementById('panel-absorcion');
   if(!el) return;
-  if(!currentData.absorcion){
+  if(!currentData.absorcion || !currentData.absorcion.unidades){
     el.innerHTML = `<div class="card"><p class="card-title">Absorcion y Flujos</p>
       <p style="color:var(--muted);font-size:14px;margin:0">
-      Pendiente de cargar. Sube el MEGASEMBRADO y la lista de precios
-      desde el panel de administracion.</p></div>`;
+      Pendiente de cargar. Sube el MEGASEMBRADO desde el panel de administracion.</p></div>`;
     return;
   }
   el.innerHTML = buildAbsorcionHtml(currentData.absorcion);
+  setTimeout(()=>renderAbsorcionCharts(currentData.absorcion), 50);
+}
+
+/* ---------- ADMIN: ABSORCION UPLOAD SECTION ---------- */
+function buildAbsorcionAdminHtml(){
+  const hasData = currentData.absorcion && currentData.absorcion.unidades;
+  const info = hasData
+    ? `<p style="font-size:11px;color:var(--green);margin:0 0 8px;font-weight:600">${currentData.absorcion.unidades.length} unidades cargadas &middot; Parseado ${currentData.absorcion.fechaParseo ? new Date(currentData.absorcion.fechaParseo).toLocaleDateString('es-MX') : 'N/D'}</p>`
+    : `<p style="font-size:11px;color:var(--muted);margin:0 0 8px">Sin datos de absorcion.</p>`;
+
+  return `<div class="modal-section">
+    <h3>Absorcion y Flujos (MEGASEMBRADO)</h3>
+    ${info}
+    <div class="form-group">
+      <label>Archivo MEGASEMBRADO (.xlsx)</label>
+      <input type="file" id="abs-file" accept=".xlsx,.xls" style="font-size:12px">
+    </div>
+    <div class="abs-upload-progress" id="abs-progress"><div class="fill" id="abs-progress-fill"></div></div>
+    <button class="btn btn-primary" id="abs-upload-btn" onclick="handleAbsorcionUpload()" style="width:100%">Procesar MEGASEMBRADO</button>
+    <div class="status-msg" id="abs-status" style="display:none"></div>
+  </div>`;
+}
+
+function setAbsStatus(msg, type){
+  const el = document.getElementById('abs-status');
+  if(!el) return;
+  el.style.display = 'block';
+  el.className = 'status-msg ' + (type||'info');
+  el.textContent = msg;
+}
+
+async function handleAbsorcionUpload(){
+  const file = document.getElementById('abs-file')?.files?.[0];
+  if(!file){ setAbsStatus('Selecciona un archivo Excel','err'); return; }
+
+  const btn = document.getElementById('abs-upload-btn');
+  const prog = document.getElementById('abs-progress');
+  const progFill = document.getElementById('abs-progress-fill');
+  if(btn){ btn.disabled=true; btn.textContent='Leyendo Excel...'; }
+  if(prog) prog.classList.add('on');
+  if(progFill) progFill.style.width='10%';
+  setAbsStatus('Procesando archivo (puede tardar 15-30s para archivos grandes)...','info');
+
+  try {
+    if(progFill) progFill.style.width='25%';
+    const parsed = await parseMegasembrado(file);
+
+    if(progFill) progFill.style.width='60%';
+    setAbsStatus('Parseadas '+parsed.unidades.length+' unidades. Guardando en Supabase...','info');
+
+    currentData.absorcion = parsed;
+
+    if(progFill) progFill.style.width='80%';
+    await guardarAbsorcion('Carga MEGASEMBRADO: '+file.name+' ('+parsed.unidades.length+' unidades)');
+
+    if(progFill) progFill.style.width='100%';
+    renderAbsorcion();
+    setAbsStatus('MEGASEMBRADO procesado: '+parsed.unidades.length+' unidades cargadas y guardadas.','ok');
+  } catch(ex){
+    setAbsStatus('Error: '+(ex.message||String(ex)),'err');
+  }
+
+  if(btn){ btn.disabled=false; btn.textContent='Procesar MEGASEMBRADO'; }
+  setTimeout(()=>{ if(prog) prog.classList.remove('on'); }, 2000);
 }
 
 /* ===== SELECTOR DE FECHA DE CORTE ===== */
@@ -1963,6 +2847,325 @@ function buildPartidasHtml(){
   return h;
 }
 
+/* ===== BREAKDOWN ADMIN SECTION ===== */
+function buildBreakdownAdminHtml(){
+  const bd = getBreakdownData();
+  const {ancla, presIni, partidas, sumaPartidas, brecha} = calcBreakdown(bd);
+  const abs = Math.abs(brecha);
+  const semTxt = abs < 1 ? 'Conciliado' : (brecha > 0 ? `Falta explicar ${fmtCur(abs)}` : `Excede por ${fmtCur(abs)}`);
+  const semColor = abs < 1 ? 'var(--green)' : (brecha > 0 ? '#C48800' : 'var(--error)');
+
+  let rows = '';
+  for(const p of partidas){
+    rows += `<div class="label-edit-row" style="justify-content:space-between">
+      <span style="font-size:13px">${p.name}${p.group==='aliah'?' <span style="font-size:10px;color:var(--muted)">(ALIAH)</span>':''}</span>
+      <span style="font-size:13px;font-weight:600">${fmtCur(p.monto||0)}</span>
+    </div>`;
+  }
+
+  return `<div class="modal-section">
+    <h3>Breakdown HC/SC — Etapa 1</h3>
+    <p style="font-size:11px;color:var(--muted);margin:0 0 6px">Ancla: ${fmtCur(ancla)} &middot; PresIni: ${fmtCur(presIni)}</p>
+    <p style="font-size:12px;font-weight:600;color:${semColor};margin:0 0 10px">${semTxt}</p>
+    ${rows}
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-primary" style="flex:1" onclick="addBreakdownPartida()">+ Concepto</button>
+      <button class="btn" style="flex:1" onclick="editBreakdownMeta()">Editar cifras HC/SC</button>
+    </div>
+    <div style="margin-top:14px">
+      <p style="font-size:12px;font-weight:600;margin:0 0 6px">Importar desde Excel</p>
+      <input type="file" id="bkd-excel-file" accept=".xlsx,.xls" style="font-size:12px">
+      <button class="btn" style="margin-top:6px;width:100%" onclick="handleBreakdownExcel()">Procesar Excel de Breakdown</button>
+      <div class="status-msg" id="bkd-status" style="display:none"></div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button class="btn" style="flex:1;font-size:11px" onclick="exportBreakdownJSON()">Exportar JSON</button>
+      <button class="btn" style="flex:1;font-size:11px" onclick="importBreakdownJSON()">Importar JSON</button>
+    </div>
+  </div>`;
+}
+
+function editBreakdownMeta(){
+  const bd = getBreakdownData();
+  const hcPres = prompt('HC Presupuestado:', bd.hc?.pres||'');
+  if(hcPres === null) return;
+  const hcEjer = prompt('HC Ejercido:', bd.hc?.ejer||'');
+  if(hcEjer === null) return;
+  const scPres = prompt('SC Presupuestado:', bd.sc?.pres||'');
+  if(scPres === null) return;
+  const scEjer = prompt('SC Ejercido:', bd.sc?.ejer||'');
+  if(scEjer === null) return;
+  const fecha = prompt('Fecha de corte (YYYY-MM-DD):', bd.fecha||new Date().toISOString().slice(0,10));
+  if(fecha === null) return;
+
+  const parse = s => parseFloat(String(s).replace(/[,$\s]/g,''))||0;
+  bd.hc = {pres: parse(hcPres), ejer: parse(hcEjer)};
+  bd.sc = {pres: parse(scPres), ejer: parse(scEjer)};
+  bd.fecha = fecha.trim();
+  currentData.breakdown = bd;
+  guardarBreakdown('Edicion de cifras HC/SC');
+  renderBreakdown();
+  renderAdminPanel();
+}
+
+function exportBreakdownJSON(){
+  const bd = getBreakdownData();
+  const blob = new Blob([JSON.stringify(bd,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'breakdown_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importBreakdownJSON(){
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = async () => {
+    const f = inp.files[0]; if(!f) return;
+    try {
+      const txt = await f.text();
+      const obj = JSON.parse(txt);
+      if(!obj.presIni && !obj.partidas){ alert('JSON no parece ser un breakdown valido.'); return; }
+      currentData.breakdown = obj;
+      await guardarBreakdown('Importacion JSON: ' + f.name);
+      renderBreakdown();
+      renderAdminPanel();
+    } catch(e){ alert('Error al leer JSON: ' + (e.message||e)); }
+  };
+  inp.click();
+}
+
+/* ===== 3 PARSERS DE EXCEL PARA BREAKDOWN ===== */
+
+/* Parser 1: Hoja _DASHBOARD — formato estandar con columnas fijas */
+function parseBkdDashboardSheet(wb){
+  const XLSX = window.XLSX;
+  const ws = wb.Sheets['_DASHBOARD'];
+  if(!ws) return null;
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+  if(rows.length < 5) return null;
+
+  /* Estructura esperada:
+     Fila 0: headers [Concepto, Monto, Grupo, Fuente]
+     Filas 1+: partidas
+     Ultima fila especial: presIni, hcPres, hcEjer, scPres, scEjer, fecha */
+  const result = {partidas:[], presIni: BREAKDOWN_DEFAULT.presIni,
+    hc:{pres:0,ejer:0}, sc:{pres:0,ejer:0}, fecha:''};
+
+  for(let i=1; i<rows.length; i++){
+    const r = rows[i]; if(!r) continue;
+    const col0 = String(r[0]||'').trim().toLowerCase();
+
+    /* Meta-rows */
+    if(col0 === 'presini' || col0 === 'presupuesto inicial'){
+      result.presIni = parseFloat(String(r[1]||0).replace(/[,$\s]/g,''))||BREAKDOWN_DEFAULT.presIni;
+      continue;
+    }
+    if(col0 === 'hc_pres' || col0 === 'hard cost presupuestado'){
+      result.hc.pres = parseFloat(String(r[1]||0).replace(/[,$\s]/g,''))||0; continue;
+    }
+    if(col0 === 'hc_ejer' || col0 === 'hard cost ejercido'){
+      result.hc.ejer = parseFloat(String(r[1]||0).replace(/[,$\s]/g,''))||0; continue;
+    }
+    if(col0 === 'sc_pres' || col0 === 'soft cost presupuestado'){
+      result.sc.pres = parseFloat(String(r[1]||0).replace(/[,$\s]/g,''))||0; continue;
+    }
+    if(col0 === 'sc_ejer' || col0 === 'soft cost ejercido'){
+      result.sc.ejer = parseFloat(String(r[1]||0).replace(/[,$\s]/g,''))||0; continue;
+    }
+    if(col0 === 'fecha' || col0 === 'fecha_corte'){
+      result.fecha = String(r[1]||'').trim(); continue;
+    }
+
+    /* Partida normal */
+    const name = String(r[0]||'').trim();
+    const monto = parseFloat(String(r[1]||0).replace(/[,$\s]/g,''));
+    if(name && monto){
+      const key = 'bkd_' + name.toLowerCase().replace(/[^a-z0-9]/g,'_').slice(0,30) + '_' + i;
+      const group = String(r[2]||'').trim().toLowerCase() === 'aliah' ? 'aliah' : undefined;
+      const source = String(r[3]||'').trim() || 'Excel _DASHBOARD';
+      result.partidas.push({key, name, monto: Math.abs(monto), group,
+        detail:{source, items:[{name, monto: Math.abs(monto)}]}});
+    }
+  }
+  return result.partidas.length ? result : null;
+}
+
+/* Parser 2: Hojas "Resumen Ejecutivo LV-E1 v2" + "Extras" */
+function parseBkdResumenYExtras(wb){
+  const XLSX = window.XLSX;
+  /* Buscar hojas por nombre parcial */
+  const sheetNames = wb.SheetNames;
+  const resSheet = sheetNames.find(s => s.toLowerCase().includes('resumen ejecutivo') && s.toLowerCase().includes('e1'));
+  const extSheet = sheetNames.find(s => s.toLowerCase().includes('extras') || s.toLowerCase().includes('extra'));
+  if(!resSheet && !extSheet) return null;
+
+  const result = {partidas:[], presIni: BREAKDOWN_DEFAULT.presIni,
+    hc:{pres:0,ejer:0}, sc:{pres:0,ejer:0}, fecha:''};
+
+  /* Del Resumen Ejecutivo extraer HC/SC */
+  if(resSheet){
+    const ws = wb.Sheets[resSheet];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+    for(const r of rows){
+      const lbl = String(r?.[0]||'').toLowerCase().trim();
+      if(!lbl) continue;
+      if(lbl.includes('hard cost') && lbl.includes('presup')){
+        result.hc.pres = parseFloat(String(r[1]||0).replace(/[,$\s]/g,''))||0;
+      }
+      if(lbl.includes('hard cost') && lbl.includes('ejerc')){
+        result.hc.ejer = parseFloat(String(r[1]||0).replace(/[,$\s]/g,''))||0;
+      }
+      if(lbl.includes('soft cost') && lbl.includes('presup')){
+        result.sc.pres = parseFloat(String(r[1]||0).replace(/[,$\s]/g,''))||0;
+      }
+      if(lbl.includes('soft cost') && lbl.includes('ejerc')){
+        result.sc.ejer = parseFloat(String(r[1]||0).replace(/[,$\s]/g,''))||0;
+      }
+      if(lbl.includes('presupuesto inicial') || lbl.includes('pres. inicial')){
+        result.presIni = parseFloat(String(r[1]||0).replace(/[,$\s]/g,''))||BREAKDOWN_DEFAULT.presIni;
+      }
+      if(lbl.includes('fecha')){
+        const v = r[1]; if(v) result.fecha = String(v).trim();
+      }
+    }
+  }
+
+  /* De la hoja Extras extraer partidas */
+  if(extSheet){
+    const ws = wb.Sheets[extSheet];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+    for(let i=0; i<rows.length; i++){
+      const r = rows[i]; if(!r) continue;
+      const name = String(r[0]||'').trim();
+      if(!name || name.toLowerCase()==='concepto' || name.toLowerCase()==='total') continue;
+      const monto = parseFloat(String(r[1]||0).replace(/[,$\s]/g,''));
+      if(!monto) continue;
+      const key = 'bkd_ext_' + name.toLowerCase().replace(/[^a-z0-9]/g,'_').slice(0,30) + '_' + i;
+      const group = String(r[2]||'').trim().toLowerCase() === 'aliah' ? 'aliah' : undefined;
+      result.partidas.push({key, name, monto: Math.abs(monto), group,
+        detail:{source: 'Hoja Extras — ' + extSheet, items:[{name, monto: Math.abs(monto)}]}});
+    }
+  }
+
+  return result.partidas.length || result.hc.pres ? result : null;
+}
+
+/* Parser 3: Hoja "Resumen E1" — formato legacy */
+function parseBkdResumenE1(wb){
+  const XLSX = window.XLSX;
+  const sheetNames = wb.SheetNames;
+  const target = sheetNames.find(s => {
+    const lo = s.toLowerCase();
+    return (lo.includes('resumen') && lo.includes('e1') && !lo.includes('ejecutivo'))
+        || lo === 'resumen e1' || lo === 'resumen ppto e1';
+  });
+  if(!target) return null;
+
+  const ws = wb.Sheets[target];
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+  if(rows.length < 3) return null;
+
+  const result = {partidas:[], presIni: BREAKDOWN_DEFAULT.presIni,
+    hc:{pres:0,ejer:0}, sc:{pres:0,ejer:0}, fecha:''};
+
+  /* Estructura legacy: Col A=concepto, Col B=presupuestado, Col C=ejercido, Col D=variacion */
+  for(let i=0; i<rows.length; i++){
+    const r = rows[i]; if(!r) continue;
+    const lbl = String(r[0]||'').toLowerCase().trim();
+    if(!lbl) continue;
+
+    if(lbl.includes('hard cost') && !lbl.includes('soft')){
+      result.hc.pres = parseFloat(String(r[1]||0).replace(/[,$\s]/g,''))||0;
+      result.hc.ejer = parseFloat(String(r[2]||0).replace(/[,$\s]/g,''))||0;
+      continue;
+    }
+    if(lbl.includes('soft cost')){
+      result.sc.pres = parseFloat(String(r[1]||0).replace(/[,$\s]/g,''))||0;
+      result.sc.ejer = parseFloat(String(r[2]||0).replace(/[,$\s]/g,''))||0;
+      continue;
+    }
+    if(lbl.includes('presupuesto inicial')){
+      result.presIni = parseFloat(String(r[1]||0).replace(/[,$\s]/g,''))||BREAKDOWN_DEFAULT.presIni;
+      continue;
+    }
+
+    /* Partidas: si col D (variacion) tiene dato, es una partida */
+    const variacion = parseFloat(String(r[3]||0).replace(/[,$\s]/g,''));
+    if(variacion && Math.abs(variacion) > 1000){
+      const name = String(r[0]||'').trim();
+      const key = 'bkd_leg_' + name.toLowerCase().replace(/[^a-z0-9]/g,'_').slice(0,30) + '_' + i;
+      result.partidas.push({key, name, monto: Math.abs(variacion),
+        detail:{source: 'Hoja ' + target, items:[{name, monto: Math.abs(variacion)}]}});
+    }
+  }
+
+  return result.partidas.length || result.hc.pres ? result : null;
+}
+
+/* Handler unificado: intenta los 3 parsers en orden de prioridad */
+async function handleBreakdownExcel(){
+  const fileInp = document.getElementById('bkd-excel-file');
+  if(!fileInp || !fileInp.files[0]){
+    setBkdStatus('Selecciona un archivo Excel primero.','err'); return;
+  }
+  const XLIBX = window.XLSX;
+  if(!XLIBX){ setBkdStatus('SheetJS no disponible.','err'); return; }
+
+  setBkdStatus('Procesando...','');
+  const file = fileInp.files[0];
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLIBX.read(buf, {type:'array'});
+
+    /* Intentar parsers en orden */
+    let parsed = parseBkdDashboardSheet(wb);
+    let src = '_DASHBOARD';
+    if(!parsed){ parsed = parseBkdResumenYExtras(wb); src = 'Resumen Ejecutivo + Extras'; }
+    if(!parsed){ parsed = parseBkdResumenE1(wb); src = 'Resumen E1 legacy'; }
+    if(!parsed){
+      setBkdStatus('No se encontro ninguna hoja reconocida (_DASHBOARD, Resumen Ejecutivo, Extras, Resumen E1).','err');
+      return;
+    }
+
+    /* Merge: conservar partidas que ya existan con el mismo key */
+    const bd = getBreakdownData();
+    if(parsed.hc.pres) bd.hc = parsed.hc;
+    if(parsed.sc.pres) bd.sc = parsed.sc;
+    if(parsed.fecha) bd.fecha = parsed.fecha;
+    if(parsed.presIni !== BREAKDOWN_DEFAULT.presIni) bd.presIni = parsed.presIni;
+
+    /* Agregar partidas nuevas (no duplicar por nombre) */
+    const existNames = new Set((bd.partidas||[]).map(p=>p.name.toLowerCase()));
+    let added = 0;
+    for(const p of parsed.partidas){
+      if(!existNames.has(p.name.toLowerCase())){
+        if(!bd.partidas) bd.partidas = [];
+        bd.partidas.push(p);
+        existNames.add(p.name.toLowerCase());
+        added++;
+      }
+    }
+
+    currentData.breakdown = bd;
+    await guardarBreakdown('Import Excel (' + src + '): ' + file.name);
+    renderBreakdown();
+    renderAdminPanel();
+    setBkdStatus(`Listo — parser: ${src}. ${parsed.partidas.length} partidas leidas, ${added} nuevas agregadas.`,'ok');
+  } catch(e){
+    setBkdStatus('Error: ' + (e.message||String(e)),'err');
+  }
+}
+
+function setBkdStatus(msg, type){
+  const el = document.getElementById('bkd-status');
+  if(!el) return;
+  el.style.display = 'block';
+  el.className = 'status-msg' + (type==='err'?' error':'') + (type==='ok'?' success':'');
+  el.textContent = msg;
+}
+
 function renderAdminPanel(){
   setTimeout(()=>{ const c=document.getElementById('up-corte');
     if(c && !c.value) c.value=new Date().toISOString().slice(0,10); },0);
@@ -1974,6 +3177,10 @@ function renderAdminPanel(){
     <hr class="sep-line">
     ${buildPartidasHtml()}
     <div class="modal-section"><h3>Subir nueva version</h3><div class="form-group"><label>Etiqueta</label><input type="text" id="up-label" value="v5 &middot; ${today}"></div><div class="form-group"><label>Fecha de corte del dato</label><input type="date" id="up-corte"><p style="font-size:11px;color:var(--muted);margin:5px 0 0">La fecha que representan las cifras, no la de hoy. Un Excel "a julio" lleva 31/07.</p></div><div class="form-group"><label>Archivo Excel (.xlsx)</label><input type="file" id="up-file" accept=".xlsx,.xls"></div><button class="btn btn-primary" id="up-btn" onclick="handleUpload()" style="width:100%">Subir y activar</button><div class="status-msg" id="admin-status" style="display:none"></div></div>
+    <hr class="sep-line">
+    ${buildBreakdownAdminHtml()}
+    <hr class="sep-line">
+    ${buildAbsorcionAdminHtml()}
     <hr class="sep-line">
     <div class="modal-section"><h3>Editar conceptos</h3><p style="font-size:11px;color:var(--muted);margin:0 0 10px">Nombre de cada fila. Los cambios se guardan en Supabase.</p>${buildLabelsFormHtml()}<button class="btn btn-primary" id="save-labels-btn" onclick="saveLabels()" style="width:100%;margin-top:10px">Guardar etiquetas</button></div>`;
 }
