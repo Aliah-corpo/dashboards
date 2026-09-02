@@ -624,7 +624,7 @@ const ROWS_BASE = [
   {key:'ingresos',                    label:'Ingreso por Ventas',               fmt:fmtFull, type:'data',       isExpense:false},
   {key:'costoObra',                   label:'Construccion (Hard Cost)',          fmt:fmtFull, type:'data',       isExpense:true},
   {key:'cpc',                         label:'Contratos por cerrar',              fmt:fmtFull, type:'data',       isExpense:true, esProvision:true},
-  {key:'sumaHC',                      label:'Suma Hard Cost',                    fmt:fmtFull, type:'total',      isExpense:true},
+  {key:'sumaHC',                      label:'Hard Cost Neto (- Recuperaciones)', fmt:fmtFull, type:'total',      isExpense:true},
   {key:'utilidadBruta',               label:'Utilidad Bruta',                   fmt:fmtFull, type:'total',      isExpense:false},
   {key:'_sep1',                       label:'Gastos Operativos',                 type:'section', sc:'SC 1'},
   {key:'gestionLicencias',            label:'Gestion, Derechos y Licencias',    fmt:fmtFull, type:'data',       isExpense:true},
@@ -713,8 +713,16 @@ function recalculate(tabKey) {
     d.cpc = d.cpc || [];
     d.cpc[i] = cpc;
 
+    /* Recuperaciones: partidas que vuelven al socio — se calculan antes del HC
+       para netear el costo visible. "Hoy suman pero se van a recuperar." */
+    const ocultas = new Set(currentData.hiddenRows || []);
+    const viva = k => !ocultas.has(k);
+    d.porRecuperar = d.porRecuperar || [];
+    d.porRecuperar[i] = ['recEquipamiento','recNegociacion','recCargadores','recElevadores']
+      .filter(viva).reduce((a,k)=>a+(d[k]?.[i]||0),0);
+
     d.sumaHC = d.sumaHC || [];
-    d.sumaHC[i] = (d.costoObra[i] || 0) + cpc;
+    d.sumaHC[i] = (d.costoObra[i] || 0) + cpc - d.porRecuperar[i];
 
     d.utilidadBruta = d.utilidadBruta || [];
     d.utilidadBruta[i] = (d.ingresos[i] || 0) - d.sumaHC[i];
@@ -722,8 +730,6 @@ function recalculate(tabKey) {
     d.totalGastosOperativos = d.totalGastosOperativos || [];
     /* Quitar una partida la saca de la suma, igual que borrar un renglon en Excel.
        El dato no se pierde: sigue en el modelo y se puede restaurar. */
-    const ocultas = new Set(currentData.hiddenRows || []);
-    const viva = k => !ocultas.has(k);
     const extraDe = g => (currentData.extraRows||[])
         .filter(e => e.grupo===g && viva(e.key))
         .reduce((a,e) => a + (d[e.key]?.[i] || 0), 0);
@@ -754,11 +760,6 @@ function recalculate(tabKey) {
 
     d.margen = d.margen || [];
     d.margen[i] = d.ingresos[i] ? d.utilidadNeta[i] / d.ingresos[i] : 0;
-
-    /* Recuperaciones: partidas que vuelven al socio ademas de la utilidad */
-    d.porRecuperar = d.porRecuperar || [];
-    d.porRecuperar[i] = ['recEquipamiento','recNegociacion','recCargadores','recElevadores']
-      .filter(viva).reduce((a,k)=>a+(d[k]?.[i]||0),0);
 
     /* Comision de comercializacion (listing) = 2% de ingresos */
     d.comisionListing = d.comisionListing || [];
@@ -1162,13 +1163,35 @@ function buildBreakdownHtml(bd){
   let saldo = ancla - presIni;
   for(const p of partidas){
     saldo -= (p.monto||0);
-    const detBtn = p.detail
-      ? `<button class="bkd-detail-btn" onclick="showBkdDetail('${p.key}')">Detalle</button>`
+    const canEdit = isAdmin && !enHistorico;
+    /* Nombre editable si es admin */
+    const nameHtml = canEdit
+      ? `<span contenteditable="true" style="cursor:text;outline:none;border-bottom:1px dashed var(--border)" onblur="saveBkdName('${p.key}',this.textContent.trim())">${p.name}</span>`
+      : p.name;
+    const aliahTag = p.group==='aliah'?' <span style="font-size:10px;color:var(--muted)">(ALIAH)</span>':'';
+    /* Monto editable si es admin */
+    const montoHtml = canEdit
+      ? `<span contenteditable="true" style="cursor:text;outline:none;color:var(--error);border-bottom:1px dashed var(--border)" data-bkd-monto="${p.key}" onblur="saveBkdMonto('${p.key}',this.textContent.trim())">-${fmtCur(p.monto||0)}</span>`
+      : `-${fmtCur(p.monto||0)}`;
+    /* Detalle colapsable inline en lugar de modal */
+    const hasDetail = p.detail && p.detail.items && p.detail.items.length;
+    const toggleId = 'bkd-det-'+p.key;
+    const toggleBtn = hasDetail
+      ? `<span style="cursor:pointer;color:var(--brass-dark);font-size:11px;font-weight:600" onclick="document.getElementById('${toggleId}').style.display=document.getElementById('${toggleId}').style.display==='none'?'block':'none'">&#9662; detalle</span>`
       : '';
-    html += `<tr><td>${p.name}${p.group==='aliah'?' <span style="font-size:10px;color:var(--muted)">(ALIAH)</span>':''}</td>
-      <td style="color:var(--error)">-${fmtCur(p.monto||0)}</td>
+    html += `<tr><td>${nameHtml}${aliahTag}</td>
+      <td>${montoHtml}</td>
       <td>${fmtCur(saldo)}</td>
-      <td>${detBtn}</td></tr>`;
+      <td>${toggleBtn}</td></tr>`;
+    if(hasDetail){
+      let detHtml = `<div style="font-size:11px;color:var(--muted);padding:4px 0">`;
+      detHtml += `<div style="font-size:10px;color:var(--brass-dark);margin-bottom:4px">Fuente: ${p.detail.source||'sin especificar'}</div>`;
+      for(const it of p.detail.items){
+        detHtml += `<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dotted var(--border)"><span>${it.name}</span><span style="font-weight:600">${fmtCur(it.monto||0)}</span></div>`;
+      }
+      detHtml += `</div>`;
+      html += `<tr id="${toggleId}" style="display:none"><td colspan="4" style="padding:4px 20px 8px;background:rgba(164,172,140,.04);border-left:2px solid var(--border)">${detHtml}</td></tr>`;
+    }
   }
 
   /* Fila de brecha */
@@ -1229,6 +1252,30 @@ async function addBreakdownPartida(){
   currentData.breakdown = bd;
 
   await guardarBreakdown('Alta de concepto: ' + name.trim());
+  renderBreakdown();
+}
+
+async function saveBkdName(key, newName){
+  if(!newName || !puedeEditar()) return;
+  const bd = getBreakdownData();
+  const p = (bd.partidas||[]).find(x=>x.key===key);
+  if(!p || p.name===newName) return;
+  p.name = newName;
+  currentData.breakdown = bd;
+  await guardarBreakdown('Renombrar concepto: '+newName);
+}
+
+async function saveBkdMonto(key, raw){
+  if(!puedeEditar()) return;
+  const num = parseFloat(String(raw).replace(/[^0-9.\-]/g,''));
+  if(isNaN(num)) return;
+  const monto = Math.abs(num);
+  const bd = getBreakdownData();
+  const p = (bd.partidas||[]).find(x=>x.key===key);
+  if(!p || p.monto===monto) return;
+  p.monto = monto;
+  currentData.breakdown = bd;
+  await guardarBreakdown('Editar monto '+p.name+': '+monto);
   renderBreakdown();
 }
 
@@ -1703,9 +1750,43 @@ function buildAbsorcionHtml(absData){
 
   html += `</div>`; /* close abs-flujos */
 
+  /* ===== ALERTAS DE VALIDACION (auditor operativo) ===== */
+  const alertas = absData.alertas || [];
+  if(alertas.length && isAdmin){
+    html += `<div class="card" style="border-left:3px solid var(--error);margin-top:16px">
+      <p class="card-title" style="color:var(--error);cursor:pointer" onclick="document.getElementById('abs-alertas-list').style.display=document.getElementById('abs-alertas-list').style.display==='none'?'block':'none'">
+        Inconsistencias detectadas (${alertas.length}) &#9662;
+      </p>
+      <div id="abs-alertas-list" style="display:none;max-height:400px;overflow-y:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead><tr style="background:rgba(154,59,59,.08)">
+            <th style="text-align:left;padding:5px 8px">Clave</th>
+            <th style="text-align:left;padding:5px 8px">Tipo</th>
+            <th style="text-align:left;padding:5px 8px">Detalle</th>
+            <th style="text-align:right;padding:5px 8px">Accion</th>
+          </tr></thead><tbody>`;
+    for(const a of alertas.slice(0,100)){
+      const tipoLabel = a.tipo==='precio_diff' ? 'Dif. Precio' : a.tipo==='solo_mega' ? 'Solo MEGA' : 'Solo Precios';
+      const tipoColor = a.tipo==='precio_diff' ? 'var(--brass-dark)' : 'var(--error)';
+      const actionBtn = a.tipo==='precio_diff'
+        ? `<button style="font-size:10px;padding:2px 8px;border:1px solid var(--brass);background:none;border-radius:4px;color:var(--brass-dark);cursor:pointer;font-family:'DM Sans',sans-serif" onclick="fixAbsPrice('${a.clave}',${a.valorLista})">Usar Lista</button>`
+        : '';
+      html += `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:4px 8px;font-weight:600">${a.clave}</td>
+        <td style="padding:4px 8px;color:${tipoColor}">${tipoLabel}</td>
+        <td style="padding:4px 8px">${a.msg}</td>
+        <td style="padding:4px 8px;text-align:right">${actionBtn}</td>
+      </tr>`;
+    }
+    if(alertas.length>100) html += `<tr><td colspan="4" style="padding:6px 8px;color:var(--muted)">...y ${alertas.length-100} mas</td></tr>`;
+    html += `</tbody></table></div></div>`;
+  }
+
   /* Fecha de parseo */
   if(absData.fechaParseo){
-    html += `<p style="font-size:10px;color:var(--muted);margin-top:12px;text-align:right">Datos parseados: ${new Date(absData.fechaParseo).toLocaleString('es-MX')} &middot; ${absData.unidades?.length||0} unidades &middot; ${absData.archivoHojas||0} hojas</p>`;
+    const flujosTag = absData.flujosGenerados ? ' &middot; Flujos proyectados' : '';
+    const mergeTag = absData.mergeStats ? ` &middot; Cruce: ${absData.mergeStats.matched} OK` : '';
+    html += `<p style="font-size:10px;color:var(--muted);margin-top:12px;text-align:right">Datos parseados: ${new Date(absData.fechaParseo).toLocaleString('es-MX')} &middot; ${absData.unidades?.length||0} unidades &middot; ${absData.archivoHojas||0} hojas${mergeTag}${flujosTag}</p>`;
   }
 
   return html;
@@ -1781,6 +1862,23 @@ function renderAbsorcionCharts(absData){
   }
 }
 
+/* ---------- FIX INLINE: corregir precio de unidad ---------- */
+async function fixAbsPrice(clave, nuevoValor){
+  if(!currentData.absorcion || !puedeEditar()) return;
+  const u = currentData.absorcion.unidades.find(x=>
+    (x.torre+'-'+x.depto).toUpperCase().replace(/\s/g,'') === clave);
+  if(!u) return;
+  u.valorTotal = nuevoValor;
+  u._alerta = null;
+  /* Quitar de alertas */
+  if(currentData.absorcion.alertas){
+    currentData.absorcion.alertas = currentData.absorcion.alertas.filter(a=>a.clave!==clave);
+    if(currentData.absorcion.mergeStats) currentData.absorcion.mergeStats.priceDiffs = Math.max(0,(currentData.absorcion.mergeStats.priceDiffs||1)-1);
+  }
+  await guardarAbsorcion('Correccion precio '+clave+' a '+nuevoValor);
+  renderAbsorcion();
+}
+
 /* ---------- RENDER ABSORCION (called by renderAll) ---------- */
 function renderAbsorcion(){
   const el = document.getElementById('panel-absorcion');
@@ -1795,22 +1893,227 @@ function renderAbsorcion(){
   setTimeout(()=>renderAbsorcionCharts(currentData.absorcion), 50);
 }
 
+/* ---------- PARSER LISTA DE PRECIOS ---------- */
+function parseListaPrecios(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject('Error leyendo el archivo de precios');
+    reader.onload = e => {
+      try {
+        const XL = window.XLSX; if(!XL){ reject('SheetJS no disponible'); return; }
+        const wb = XL.read(e.target.result, {type:'array', cellDates:true});
+        /* Buscar hoja con "CONTROL" o "PRECIOS" o la primera */
+        let wsName = wb.SheetNames.find(n=>n.toUpperCase().includes('CONTROL') || n.toUpperCase().includes('PRECIO'));
+        if(!wsName) wsName = wb.SheetNames[0];
+        const ws = wb.Sheets[wsName];
+        if(!ws){ reject('No se encontro hoja de precios'); return; }
+
+        const raw = XL.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
+
+        /* Detectar header row — buscar "UNIDAD CRUCE" o "TORRE" */
+        let hdrIdx = -1;
+        for(let i=0; i<Math.min(15,raw.length); i++){
+          const row = raw[i];
+          if(!row) continue;
+          const joined = row.map(c=>String(c||'').toUpperCase()).join('|');
+          if(joined.includes('TORRE') && (joined.includes('UNIDAD') || joined.includes('CRUCE'))){
+            hdrIdx = i; break;
+          }
+        }
+        if(hdrIdx<0){ reject('No se encontro fila de headers con TORRE/UNIDAD CRUCE en la hoja de precios'); return; }
+
+        const hdrs = raw[hdrIdx].map(h=>String(h||'').trim().toUpperCase());
+
+        function findCol(...variants){
+          for(const v of variants){
+            const idx = hdrs.findIndex(h=>h.includes(v.toUpperCase()));
+            if(idx>=0) return idx;
+          }
+          return -1;
+        }
+
+        const colTorre     = findCol('TORRE');
+        const colClave     = findCol('UNIDAD CRUCE','UNIDAD_CRUCE','CLAVE CRUCE');
+        const colStatus    = findCol('ESTATUS','STATUS');
+        const colTipo      = findCol('TIPO');
+        const colAreaInt   = findCol('AREA INTERIOR','INTERIOR M2');
+        const colM2Tot     = findCol('M2 TOTALES','TOTALES');
+        const colUbicacion = findCol('UBICACION','UBICACIÓN');
+
+        /* Encontrar la columna de precio mas reciente (mayor fecha) */
+        let maxPriceCol = -1, maxPriceLabel = '';
+        for(let c=0; c<hdrs.length; c++){
+          if(hdrs[c].includes('PRECIO DE LISTA') || hdrs[c].includes('LISTA DE PRECIO')){
+            maxPriceCol = c; maxPriceLabel = hdrs[c];
+          }
+        }
+
+        /* Valor m2 ponderado junto al ultimo precio */
+        const colValM2Pond = (maxPriceCol>=0 && maxPriceCol+2<hdrs.length && hdrs[maxPriceCol+2].includes('PONDERADO'))
+          ? maxPriceCol+2 : findCol('VALOR M2 PONDERADO');
+
+        const gn = (row,c) => { if(c<0) return 0; const v=row[c]; if(v==null||v==='') return 0; if(typeof v==='number') return v; const n=parseFloat(String(v).replace(/[$,%\s,]/g,'')); return isNaN(n)?0:n; };
+        const gs = (row,c) => c<0?'':String(row[c]||'').trim();
+
+        const items = {};
+        for(let i=hdrIdx+1; i<raw.length; i++){
+          const r = raw[i];
+          if(!r) continue;
+          const clave = gs(r, colClave);
+          if(!clave || clave.length<3) continue;
+          items[clave.toUpperCase()] = {
+            clave,
+            torre:     gs(r,colTorre),
+            status:    gs(r,colStatus),
+            tipo:      gs(r,colTipo),
+            areaInt:   gn(r,colAreaInt),
+            m2Tot:     gn(r,colM2Tot),
+            ubicacion: gs(r,colUbicacion),
+            precioLista: gn(r, maxPriceCol),
+            valorM2Pond: gn(r, colValM2Pond),
+            precioLabel: maxPriceLabel
+          };
+        }
+
+        resolve({items, count:Object.keys(items).length, precioLabel:maxPriceLabel, hoja:wsName});
+      } catch(ex){ reject(ex.message||String(ex)); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+/* ---------- MERGE MEGASEMBRADO + LISTA PRECIOS ---------- */
+function mergeAbsorcionConPrecios(absData, preciosData){
+  const alertas = [];
+  const precioMap = preciosData.items;
+  let matched = 0, soloMega = 0, soloPrecios = 0, priceDiffs = 0;
+
+  for(const u of absData.unidades){
+    /* Construir clave compatible: TORRE-DEPTO */
+    const claveUpper = (u.torre + '-' + u.depto).toUpperCase().replace(/\s/g,'');
+    const precio = precioMap[claveUpper];
+    if(precio){
+      matched++;
+      u.precioLista = precio.precioLista;
+      u.valorM2Pond = precio.valorM2Pond;
+      u.areaInt = precio.areaInt || u.metros;
+      u.m2Tot = precio.m2Tot || u.metros;
+      u.tipoPrecio = precio.tipo;
+      u.statusPrecio = precio.status;
+      /* Detectar inconsistencias */
+      if(u.valorTotal && precio.precioLista && Math.abs(u.valorTotal - precio.precioLista) > 1000){
+        const diff = u.valorTotal - precio.precioLista;
+        const pct = (diff / precio.precioLista * 100).toFixed(1);
+        u._alerta = `Valor MEGA (${fmtCur(u.valorTotal)}) vs Lista (${fmtCur(precio.precioLista)}): dif ${pct}%`;
+        alertas.push({clave:claveUpper, tipo:'precio_diff', msg:u._alerta, valorMega:u.valorTotal, valorLista:precio.precioLista, diff});
+        priceDiffs++;
+      }
+    } else {
+      soloMega++;
+      u._alerta = 'No encontrada en Lista de Precios';
+      alertas.push({clave:claveUpper, tipo:'solo_mega', msg:'Unidad en MEGASEMBRADO pero no en Lista de Precios'});
+    }
+  }
+
+  /* Unidades en precios pero no en MEGA */
+  const megaClaves = new Set(absData.unidades.map(u=>(u.torre+'-'+u.depto).toUpperCase().replace(/\s/g,'')));
+  for(const [clave, p] of Object.entries(precioMap)){
+    if(!megaClaves.has(clave)){
+      soloPrecios++;
+      alertas.push({clave, tipo:'solo_precios', msg:'Unidad en Lista de Precios pero no en MEGASEMBRADO', status:p.status});
+    }
+  }
+
+  absData.mergeStats = {matched, soloMega, soloPrecios, priceDiffs, totalAlertas:alertas.length};
+  absData.alertas = alertas;
+  absData.precioLabel = preciosData.precioLabel;
+  return absData;
+}
+
+/* ---------- GENERAR FLUJOS SINTETICOS ---------- */
+function generarFlujosSinteticos(absData){
+  /* Para unidades vendidas con saldoDiferido > 0 y sin flujos mensuales,
+     distribuir el saldo pendiente en los proximos 12-24 meses
+     basado en la informacion de parcialidades disponible. */
+  const hoy = new Date();
+  const mesActual = hoy.getMonth();
+  const anioActual = hoy.getFullYear();
+  const MES_LABEL = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+
+  /* Generar labels de meses futuros (18 meses) */
+  const monthLabels = [];
+  for(let i=0; i<18; i++){
+    const m = (mesActual + i) % 12;
+    const a = anioActual + Math.floor((mesActual + i) / 12);
+    monthLabels.push(MES_LABEL[m]+'-'+a);
+  }
+
+  for(const u of absData.unidades){
+    if(u.status!=='VENDIDO') continue;
+    /* Si ya tiene flujos (del archivo), respetar */
+    if(Object.keys(u.flujos||{}).length > 0) continue;
+
+    /* Saldo pendiente = valorTotal - totalAportado (lo que falta cobrar) */
+    const pendiente = Math.max(0, (u.valorTotal||0) - (u.totalAportado||0));
+    if(pendiente < 1000) continue;
+
+    /* Estimar meses restantes: si tiene saldoDiferido, usar como referencia.
+       Si no, distribuir en 12 meses como default. */
+    let mesesRestantes = 12;
+    if(u.saldoDiferido > 0 && u.pagoDiferido > 0){
+      /* pagoDiferido tipicamente es el monto mensual de diferido */
+      mesesRestantes = Math.ceil(u.saldoDiferido / u.pagoDiferido);
+      mesesRestantes = Math.max(1, Math.min(mesesRestantes, 36));
+    }
+    const mensualidad = pendiente / mesesRestantes;
+
+    u.flujos = {};
+    for(let i=0; i<Math.min(mesesRestantes, monthLabels.length); i++){
+      u.flujos[monthLabels[i]] = Math.round(mensualidad);
+    }
+  }
+
+  /* Actualizar monthCols */
+  const allMonths = new Set(absData.monthCols||[]);
+  monthLabels.forEach(ml => allMonths.add(ml));
+  /* Ordenar cronologicamente */
+  const sorted = Array.from(allMonths).sort((a,b) => {
+    const [ma,ya] = a.split('-'); const [mb,yb] = b.split('-');
+    const mesMap = {ENE:0,FEB:1,MAR:2,ABR:3,MAY:4,JUN:5,JUL:6,AGO:7,SEP:8,OCT:9,NOV:10,DIC:11};
+    return (parseInt(ya)*12+(mesMap[ma]||0)) - (parseInt(yb)*12+(mesMap[mb]||0));
+  });
+  absData.monthCols = sorted;
+  absData.flujosGenerados = true;
+  return absData;
+}
+
 /* ---------- ADMIN: ABSORCION UPLOAD SECTION ---------- */
 function buildAbsorcionAdminHtml(){
   const hasData = currentData.absorcion && currentData.absorcion.unidades;
-  const info = hasData
-    ? `<p style="font-size:11px;color:var(--green);margin:0 0 8px;font-weight:600">${currentData.absorcion.unidades.length} unidades cargadas &middot; Parseado ${currentData.absorcion.fechaParseo ? new Date(currentData.absorcion.fechaParseo).toLocaleDateString('es-MX') : 'N/D'}</p>`
-    : `<p style="font-size:11px;color:var(--muted);margin:0 0 8px">Sin datos de absorcion.</p>`;
+  const stats = currentData.absorcion?.mergeStats;
+  let info = '';
+  if(hasData){
+    info = `<p style="font-size:11px;color:var(--green);margin:0 0 8px;font-weight:600">${currentData.absorcion.unidades.length} unidades cargadas &middot; Parseado ${currentData.absorcion.fechaParseo ? new Date(currentData.absorcion.fechaParseo).toLocaleDateString('es-MX') : 'N/D'}</p>`;
+    if(stats){
+      info += `<p style="font-size:10px;color:var(--muted);margin:0 0 8px">Merge: ${stats.matched} cruzadas, ${stats.soloMega} solo MEGA, ${stats.soloPrecios} solo Precios, ${stats.priceDiffs} diferencias de precio</p>`;
+    }
+  } else {
+    info = `<p style="font-size:11px;color:var(--muted);margin:0 0 8px">Sin datos de absorcion.</p>`;
+  }
 
   return `<div class="modal-section">
-    <h3>Absorcion y Flujos (MEGASEMBRADO)</h3>
+    <h3>Absorcion y Flujos</h3>
     ${info}
     <div class="form-group">
-      <label>Archivo MEGASEMBRADO (.xlsx)</label>
+      <label>1. Archivo MEGASEMBRADO (.xlsx)</label>
       <input type="file" id="abs-file" accept=".xlsx,.xls" style="font-size:12px">
     </div>
+    <div class="form-group" style="margin-top:8px">
+      <label>2. Lista de Precios (.xlsx) — opcional, enriquece datos</label>
+      <input type="file" id="abs-precios-file" accept=".xlsx,.xls" style="font-size:12px">
+    </div>
     <div class="abs-upload-progress" id="abs-progress"><div class="fill" id="abs-progress-fill"></div></div>
-    <button class="btn btn-primary" id="abs-upload-btn" onclick="handleAbsorcionUpload()" style="width:100%">Procesar MEGASEMBRADO</button>
+    <button class="btn btn-primary" id="abs-upload-btn" onclick="handleAbsorcionUpload()" style="width:100%">Procesar Archivos</button>
     <div class="status-msg" id="abs-status" style="display:none"></div>
   </div>`;
 }
@@ -1825,7 +2128,8 @@ function setAbsStatus(msg, type){
 
 async function handleAbsorcionUpload(){
   const file = document.getElementById('abs-file')?.files?.[0];
-  if(!file){ setAbsStatus('Selecciona un archivo Excel','err'); return; }
+  const preciosFile = document.getElementById('abs-precios-file')?.files?.[0];
+  if(!file){ setAbsStatus('Selecciona al menos el archivo MEGASEMBRADO','err'); return; }
 
   const btn = document.getElementById('abs-upload-btn');
   const prog = document.getElementById('abs-progress');
@@ -1833,28 +2137,49 @@ async function handleAbsorcionUpload(){
   if(btn){ btn.disabled=true; btn.textContent='Leyendo Excel...'; }
   if(prog) prog.classList.add('on');
   if(progFill) progFill.style.width='10%';
-  setAbsStatus('Procesando archivo (puede tardar 15-30s para archivos grandes)...','info');
+  setAbsStatus('Procesando MEGASEMBRADO (puede tardar 15-30s)...','info');
 
   try {
-    if(progFill) progFill.style.width='25%';
-    const parsed = await parseMegasembrado(file);
+    if(progFill) progFill.style.width='20%';
+    let parsed = await parseMegasembrado(file);
 
-    if(progFill) progFill.style.width='60%';
-    setAbsStatus('Parseadas '+parsed.unidades.length+' unidades. Guardando en Supabase...','info');
+    /* Si hay lista de precios, parsear y mergear */
+    if(preciosFile){
+      if(progFill) progFill.style.width='40%';
+      setAbsStatus('Procesando Lista de Precios...','info');
+      const precios = await parseListaPrecios(preciosFile);
+      if(progFill) progFill.style.width='55%';
+      setAbsStatus('Cruzando datos ('+parsed.unidades.length+' unidades x '+precios.count+' precios)...','info');
+      parsed = mergeAbsorcionConPrecios(parsed, precios);
+    }
+
+    /* Generar flujos sinteticos si no hay columnas de mes */
+    if(!parsed.monthCols || parsed.monthCols.length===0){
+      if(progFill) progFill.style.width='65%';
+      setAbsStatus('Generando flujos esperados proyectados...','info');
+      parsed = generarFlujosSinteticos(parsed);
+    }
+
+    if(progFill) progFill.style.width='75%';
+    setAbsStatus('Guardando en Supabase...','info');
 
     currentData.absorcion = parsed;
 
-    if(progFill) progFill.style.width='80%';
-    await guardarAbsorcion('Carga MEGASEMBRADO: '+file.name+' ('+parsed.unidades.length+' unidades)');
+    if(progFill) progFill.style.width='90%';
+    await guardarAbsorcion('Carga: '+file.name+(preciosFile?' + '+preciosFile.name:'')+' ('+parsed.unidades.length+' uds)');
 
     if(progFill) progFill.style.width='100%';
     renderAbsorcion();
-    setAbsStatus('MEGASEMBRADO procesado: '+parsed.unidades.length+' unidades cargadas y guardadas.','ok');
+    const statsMsg = parsed.mergeStats
+      ? ` — Cruce: ${parsed.mergeStats.matched} OK, ${parsed.mergeStats.priceDiffs} difs de precio, ${parsed.mergeStats.soloMega} sin precio`
+      : '';
+    const flujosMsg = parsed.flujosGenerados ? ' — Flujos proyectados generados' : '';
+    setAbsStatus('Procesado: '+parsed.unidades.length+' unidades.'+statsMsg+flujosMsg,'ok');
   } catch(ex){
     setAbsStatus('Error: '+(ex.message||String(ex)),'err');
   }
 
-  if(btn){ btn.disabled=false; btn.textContent='Procesar MEGASEMBRADO'; }
+  if(btn){ btn.disabled=false; btn.textContent='Procesar Archivos'; }
   setTimeout(()=>{ if(prog) prog.classList.remove('on'); }, 2000);
 }
 
