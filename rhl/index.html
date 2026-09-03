@@ -2519,7 +2519,7 @@ function aplicarAbsExcel(absExcel){
     };
   });
   /* Rellenar cobrado/porCobrar/vencido desde EMBEDDED si existe */
-  const embAbsE1 = EMBEDDED_DATA.logrado?.e1?.ago?.absorcion || EMBEDDED_DATA.logrado?.e1?.jul?.absorcion?.torres || [];
+  const embAbsE1 = EMBEDDED_DATA.logrado?.e1?.ago?.absorcion?.torres || EMBEDDED_DATA.logrado?.e1?.jul?.absorcion?.torres || [];
   absE1Torres.forEach(t => {
     const emb = embAbsE1.find(e=>e.torre===t.torre);
     if(emb){ t.cobrado=emb.cobrado; t.porCobrarTiempo=emb.porCobrarTiempo; t.vencido=emb.vencido; }
@@ -2558,7 +2558,7 @@ function aplicarAbsExcel(absExcel){
       porLograr: pl ? pl.valorPorLograr : (t.valorTotal - t.valorLogrado)
     };
   });
-  const embAbsE2 = EMBEDDED_DATA.logrado?.e2?.ago?.absorcion || EMBEDDED_DATA.logrado?.e2?.jul?.absorcion?.torres || [];
+  const embAbsE2 = EMBEDDED_DATA.logrado?.e2?.ago?.absorcion?.torres || EMBEDDED_DATA.logrado?.e2?.jul?.absorcion?.torres || [];
   absE2Torres.forEach(t => {
     const emb = embAbsE2.find(e=>e.torre===t.torre);
     if(emb){ t.cobrado=emb.cobrado; t.porCobrarTiempo=emb.porCobrarTiempo; t.vencido=emb.vencido; }
