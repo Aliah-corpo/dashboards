@@ -382,6 +382,15 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
 .abs-upload-progress.on{display:block;}
 .abs-upload-progress .fill{height:100%;background:var(--olive);border-radius:3px;transition:width .3s ease;width:0%;}
 .abs-tab-nav{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0;}
+/* Reportes tab */
+.rep-tab-nav{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0;}
+.rep-tab-btn{background:none;border:none;padding:8px 16px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;}
+.rep-tab-btn.on{color:var(--charcoal);border-bottom-color:var(--olive);font-weight:600;}
+.rep-panel{display:none;}
+.rep-panel.on{display:block;}
+.rep-pdf-wrap{width:100%;height:80vh;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);background:var(--white);}
+.rep-pdf-wrap embed,.rep-pdf-wrap iframe{width:100%;height:100%;border:none;}
+.rep-info{font-size:11px;color:var(--muted);margin:8px 0 0;}
 .abs-tab-btn{padding:8px 16px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:'DM Sans',sans-serif;transition:all .15s;}
 .abs-tab-btn:hover{color:var(--charcoal);}
 .abs-tab-btn.on{color:var(--olive);border-bottom-color:var(--brass);}
@@ -484,12 +493,14 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
     <button class="tab" data-tab="e2">Etapa 2</button>
     <button class="tab" data-tab="breakdown">Breakdown HC/SC</button>
     <button class="tab" data-tab="absorcion">Absorcion y Flujos</button>
+    <button class="tab" data-tab="reportes">Reportes</button>
   </div>
   <div class="tab-content active" id="panel-cons"></div>
   <div class="tab-content" id="panel-e1"></div>
   <div class="tab-content" id="panel-e2"></div>
   <div class="tab-content" id="panel-breakdown"></div>
   <div class="tab-content" id="panel-absorcion"></div>
+  <div class="tab-content" id="panel-reportes"></div>
 </div>
 
 <div class="modal-backdrop" id="admin-backdrop" onclick="handleBackdropClick(event)">
@@ -524,6 +535,7 @@ const _hiddenCols = {};
 
 /* ===== FORMATEO ===== */
 const fmtCur  = v => { if(v==null||isNaN(v))return'-'; const neg=v<0,abs=Math.abs(v); const s=abs>=1e9?'$'+(abs/1e9).toFixed(2)+'B':abs>=1e6?'$'+(abs/1e6).toFixed(2)+'M':abs>=1e3?'$'+(abs/1e3).toFixed(1)+'K':'$'+abs.toFixed(0); return neg?'('+s+')':s; };
+const fmtBkd  = v => { if(v==null||isNaN(v))return'-'; const neg=v<0,abs=Math.abs(v); const s='$'+Math.round(abs).toLocaleString('en-US'); return neg?'-'+s:s; };
 const fmtFull = v => { if(v==null||isNaN(v))return'-'; const neg=v<0,abs=Math.abs(v); return (neg?'(':'')+'$'+abs.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})+(neg?')':''); };
 const fmtPct  = v => (v==null||isNaN(v))?'-':(v*100).toFixed(2)+'%';
 const fmtMult = v => (!v||isNaN(v))?'-':v.toFixed(2)+'x';
@@ -1190,7 +1202,7 @@ function buildBreakdownHtml(bd){
           <th></th>
         </tr></thead>
         <tbody>
-          <tr class="bkd-total"><td>Presupuesto inicial</td><td>${fmtCur(presIni)}</td><td>${fmtCur(ancla - presIni)}</td><td></td></tr>`;
+          <tr class="bkd-total"><td>Presupuesto inicial</td><td>${fmtBkd(presIni)}</td><td>${fmtBkd(ancla - presIni)}</td><td></td></tr>`;
 
   /* Partidas — saldo descendente desde la variacion total */
   let saldo = ancla - presIni;
@@ -1204,8 +1216,8 @@ function buildBreakdownHtml(bd){
     const aliahTag = p.group==='aliah'?' <span style="font-size:10px;color:var(--muted)">(ALIAH)</span>':'';
     /* Monto editable si es admin */
     const montoHtml = canEdit
-      ? `<span contenteditable="true" style="cursor:text;outline:none;color:var(--error);border-bottom:1px dashed var(--border)" data-bkd-monto="${p.key}" onblur="saveBkdMonto('${p.key}',this.textContent.trim())">-${fmtCur(p.monto||0)}</span>`
-      : `-${fmtCur(p.monto||0)}`;
+      ? `<span contenteditable="true" style="cursor:text;outline:none;color:var(--error);border-bottom:1px dashed var(--border)" data-bkd-monto="${p.key}" onblur="saveBkdMonto('${p.key}',this.textContent.trim())">-${fmtBkd(p.monto||0)}</span>`
+      : `-${fmtBkd(p.monto||0)}`;
     /* Detalle colapsable inline en lugar de modal */
     const hasDetail = p.detail && p.detail.items && p.detail.items.length;
     const toggleId = 'bkd-det-'+p.key;
@@ -1214,13 +1226,13 @@ function buildBreakdownHtml(bd){
       : '';
     html += `<tr><td>${nameHtml}${aliahTag}</td>
       <td>${montoHtml}</td>
-      <td>${fmtCur(saldo)}</td>
+      <td>${fmtBkd(saldo)}</td>
       <td>${toggleBtn}</td></tr>`;
     if(hasDetail){
       let detHtml = `<div style="font-size:11px;color:var(--muted);padding:4px 0">`;
       detHtml += `<div style="font-size:10px;color:var(--brass-dark);margin-bottom:4px">Fuente: ${p.detail.source||'sin especificar'}</div>`;
       for(const it of p.detail.items){
-        detHtml += `<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dotted var(--border)"><span>${it.name}</span><span style="font-weight:600">${fmtCur(it.monto||0)}</span></div>`;
+        detHtml += `<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dotted var(--border)"><span>${it.name}</span><span style="font-weight:600">${fmtBkd(it.monto||0)}</span></div>`;
       }
       detHtml += `</div>`;
       html += `<tr id="${toggleId}" style="display:none"><td colspan="4" style="padding:4px 20px 8px;background:rgba(164,172,140,.04);border-left:2px solid var(--border)">${detHtml}</td></tr>`;
@@ -1228,7 +1240,7 @@ function buildBreakdownHtml(bd){
   }
 
   /* Fila de brecha */
-  html += `<tr class="bkd-brecha"><td>Brecha sin explicar</td><td>${fmtCur(brecha)}</td><td></td><td></td></tr>`;
+  html += `<tr class="bkd-brecha"><td>Brecha sin explicar</td><td>${fmtBkd(brecha)}</td><td></td><td></td></tr>`;
 
   html += `</tbody></table></div>`;
 
@@ -1256,9 +1268,9 @@ function showBkdDetail(key){
     let sum = 0;
     for(const it of p.detail.items){
       sum += (it.monto||0);
-      tbl += `<tr><td>${it.name}</td><td>${fmtCur(it.monto||0)}</td></tr>`;
+      tbl += `<tr><td>${it.name}</td><td>${fmtBkd(it.monto||0)}</td></tr>`;
     }
-    tbl += `<tr class="bkd-total"><td>Total</td><td>${fmtCur(sum)}</td></tr></tbody></table>`;
+    tbl += `<tr class="bkd-total"><td>Total</td><td>${fmtBkd(sum)}</td></tr></tbody></table>`;
   }
 
   overlay.innerHTML = `<div class="bkd-detail-modal" style="position:relative;">
@@ -2826,6 +2838,45 @@ document.querySelectorAll('.tab').forEach(t => {
 
 let charts = {};
 
+/* ===== REPORTES TAB ===== */
+const REPORTES_PDF = [
+  {id:'evo-comercial',  label:'Evolución Comercial',   file:'Evolucion_Comercial.pdf'},
+  {id:'eficiencia',     label:'Eficiencia Medios',      file:'Eficiencia_Medios.pdf'},
+  {id:'monitor-ritmo',  label:'Monitor Ritmo Precios',  file:'Monitor_Ritmo_Precios.pdf'},
+  {id:'resumen-op',     label:'Resumen Operación',      file:'Resumen_Operacion.pdf'}
+];
+const REPORTES_BASE_URL = 'reportes/';
+
+function renderReportes(){
+  const el = document.getElementById('panel-reportes');
+  if(!el) return;
+
+  let html = `<div class="rep-tab-nav">`;
+  REPORTES_PDF.forEach((r,i) => {
+    html += `<button class="rep-tab-btn${i===0?' on':''}" onclick="switchRepTab(this,'rep-${r.id}')">${r.label}</button>`;
+  });
+  html += `</div>`;
+
+  REPORTES_PDF.forEach((r,i) => {
+    const url = REPORTES_BASE_URL + r.file;
+    html += `<div class="rep-panel${i===0?' on':''}" id="rep-${r.id}">
+      <div class="rep-pdf-wrap">
+        <embed src="${url}" type="application/pdf">
+      </div>
+      <p class="rep-info">Archivo: ${r.file} — Para actualizar, reemplazar en la carpeta <code>rhl/reportes/</code> del repositorio.</p>
+    </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+function switchRepTab(btn, panelId){
+  document.querySelectorAll('.rep-tab-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.rep-panel').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById(panelId)?.classList.add('on');
+}
+
 function renderAll() {
   renderTab('e1',   currentData.e1,   currentData.logrado?.e1);
   renderTab('e2',   currentData.e2,   currentData.logrado?.e2);
@@ -2834,6 +2885,7 @@ function renderAll() {
   renderTab('cons', currentData.cons, consLogrado);
   renderBreakdown();
   renderAbsorcion();
+  renderReportes();
   if(isAdmin) { activateInlineEditing(); activateNumericEditing(); }
 }
 
