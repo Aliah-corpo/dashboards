@@ -1837,18 +1837,19 @@ function buildAbsorcionHtml(absData){
       <th style="text-align:right">Valor</th>
       <th style="text-align:right">Pagado</th>
       <th style="text-align:right">Saldo</th>
+      <th style="text-align:right;color:var(--error)">Vencido</th>
       <th style="text-align:right;background:rgba(164,172,140,.08)">Anterior</th>`;
     mesesFuturos.forEach(m=>{ html+=`<th style="text-align:right">${m}</th>`; });
     html += `<th style="text-align:right;font-weight:700">Flujo Pend.</th></tr></thead><tbody>`;
 
     /* Build by Fase > Torre */
     [{fase:1, torres:['A','B','C']}, {fase:2, torres:['D','E']}].forEach(faseGrp => {
-      let faseTotalPagado=0, faseTotalSaldoPend=0, faseTotalAnterior=0, faseTotalFlujo=0, faseTotalValor=0;
+      let faseTotalPagado=0, faseTotalSaldoPend=0, faseTotalVencido=0, faseTotalAnterior=0, faseTotalFlujo=0, faseTotalValor=0;
       const faseMeses = {};
       mesesFuturos.forEach(m=>{ faseMeses[m]=0; });
 
       /* Fase header */
-      const faseColSpan = 6 + mesesFuturos.length + 1 + 1;
+      const faseColSpan = 7 + mesesFuturos.length + 1 + 1;
       html += `<tr class="section-hdr" style="cursor:pointer" onclick="toggleFlujosSection('fase${faseGrp.fase}')">
         <td colspan="${faseColSpan}" style="font-weight:700;font-size:13px"><span class="sec-arrow" id="arrow-fase${faseGrp.fase}">&#9658;</span> Fase ${faseGrp.fase} — Torres ${faseGrp.torres.join(', ')}</td></tr>`;
 
@@ -1856,7 +1857,7 @@ function buildAbsorcionHtml(absData){
         const torreUnits = vendidos.filter(x => x.torre.toUpperCase().replace(/[^A-Z]/g,'')===torre);
         if(!torreUnits.length) return;
 
-        let torrePagado=0, torreSaldoPend=0, torreAnterior=0, torreFlujo=0, torreValor=0;
+        let torrePagado=0, torreSaldoPend=0, torreVencido=0, torreAnterior=0, torreFlujo=0, torreValor=0;
         const torreMeses = {};
         mesesFuturos.forEach(m=>{ torreMeses[m]=0; });
 
@@ -1869,8 +1870,13 @@ function buildAbsorcionHtml(absData){
           const anterior = mesesAnteriores.reduce((s,m)=>s+(u.flujos[m]||0),0);
           const flujoTotal = Object.values(u.flujos||{}).reduce((s,v)=>s+v,0);
           const saldoPend = (u.valorTotal||0) - (u.totalAportado||0);
+          /* Vencido = flujos programados en meses pasados que no se cobraron.
+             Si el depto ya esta liquidado (saldo ~0), no hay vencido aunque haya
+             flujos anteriores (ya se pagaron). */
+          const vencido = saldoPend > 100 ? anterior : 0;
           torrePagado += u.totalAportado||0;
           torreSaldoPend += Math.max(0, saldoPend);
+          torreVencido += vencido;
           torreAnterior += anterior;
           torreFlujo += flujoTotal;
           torreValor += u.valorTotal||0;
@@ -1882,6 +1888,7 @@ function buildAbsorcionHtml(absData){
           </select></td>`;
 
           const saldoColor = saldoPend > 0 ? 'color:var(--brass-dark)' : 'color:var(--green)';
+          const vencidoStyle = vencido > 0 ? 'color:var(--error);font-weight:600' : '';
 
           html += `<tr data-flujos-sec="torre${torre}" style="display:none;font-size:11px">
             <td style="font-weight:600;padding-left:36px">${u.depto}</td>
@@ -1890,6 +1897,7 @@ function buildAbsorcionHtml(absData){
             <td style="text-align:right">${fc(u.valorTotal||0)}</td>
             <td style="text-align:right">${fc(u.totalAportado||0)}</td>
             <td style="text-align:right;${saldoColor}">${fc(Math.max(0,saldoPend))}</td>
+            <td style="text-align:right;${vencidoStyle}">${vencido>0?fc(vencido):'$0'}</td>
             <td style="text-align:right;background:rgba(164,172,140,.05)">${fc(anterior)}</td>`;
           mesesFuturos.forEach(m=>{
             const v = u.flujos[m]||0;
@@ -1901,6 +1909,7 @@ function buildAbsorcionHtml(absData){
 
         /* Torre subtotal */
         faseTotalPagado += torrePagado; faseTotalSaldoPend += torreSaldoPend;
+        faseTotalVencido += torreVencido;
         faseTotalAnterior += torreAnterior; faseTotalFlujo += torreFlujo; faseTotalValor += torreValor;
         mesesFuturos.forEach(m=>{ faseMeses[m] += torreMeses[m]; });
 
@@ -1910,6 +1919,7 @@ function buildAbsorcionHtml(absData){
           <td style="text-align:right">${fc(torreValor)}</td>
           <td style="text-align:right">${fc(torrePagado)}</td>
           <td style="text-align:right;color:var(--brass-dark)">${fc(torreSaldoPend)}</td>
+          <td style="text-align:right;color:var(--error)">${fc(torreVencido)}</td>
           <td style="text-align:right;background:rgba(164,172,140,.12)">${fc(torreAnterior)}</td>`;
         mesesFuturos.forEach(m=>{ html+=`<td style="text-align:right">${fc(torreMeses[m])}</td>`; });
         html += `<td style="text-align:right;font-weight:700">${fc(torreFlujo)}</td></tr>`;
@@ -1922,19 +1932,23 @@ function buildAbsorcionHtml(absData){
         <td style="text-align:right">${fc(faseTotalValor)}</td>
         <td style="text-align:right">${fc(faseTotalPagado)}</td>
         <td style="text-align:right;color:var(--brass-dark)">${fc(faseTotalSaldoPend)}</td>
+        <td style="text-align:right;color:var(--error)">${fc(faseTotalVencido)}</td>
         <td style="text-align:right;background:rgba(164,172,140,.12)">${fc(faseTotalAnterior)}</td>`;
       mesesFuturos.forEach(m=>{ html+=`<td style="text-align:right">${fc(faseMeses[m])}</td>`; });
       html += `<td style="text-align:right">${fc(faseTotalFlujo)}</td></tr>`;
     });
 
     /* Gran total */
-    let gtPagado=0, gtSaldoPend=0, gtAnterior=0, gtFlujo=0, gtValor=0;
+    let gtPagado=0, gtSaldoPend=0, gtVencido=0, gtAnterior=0, gtFlujo=0, gtValor=0;
     const gtMeses = {};
     mesesFuturos.forEach(m=>{ gtMeses[m]=0; });
     vendidos.forEach(u => {
+      const anterior = mesesAnteriores.reduce((s,m)=>s+(u.flujos[m]||0),0);
+      const saldoPend = (u.valorTotal||0)-(u.totalAportado||0);
       gtPagado += u.totalAportado||0;
-      gtSaldoPend += Math.max(0, (u.valorTotal||0)-(u.totalAportado||0));
-      gtAnterior += mesesAnteriores.reduce((s,m)=>s+(u.flujos[m]||0),0);
+      gtSaldoPend += Math.max(0, saldoPend);
+      gtVencido += saldoPend > 100 ? anterior : 0;
+      gtAnterior += anterior;
       gtFlujo += Object.values(u.flujos||{}).reduce((s,v)=>s+v,0);
       gtValor += u.valorTotal||0;
       mesesFuturos.forEach(m=>{ gtMeses[m] += (u.flujos[m]||0); });
@@ -1945,6 +1959,7 @@ function buildAbsorcionHtml(absData){
       <td style="text-align:right">${fc(gtValor)}</td>
       <td style="text-align:right">${fc(gtPagado)}</td>
       <td style="text-align:right;color:var(--brass-dark)">${fc(gtSaldoPend)}</td>
+      <td style="text-align:right;color:var(--error)">${fc(gtVencido)}</td>
       <td style="text-align:right;background:rgba(164,172,140,.12)">${fc(gtAnterior)}</td>`;
     mesesFuturos.forEach(m=>{ html+=`<td style="text-align:right">${fc(gtMeses[m])}</td>`; });
     html += `<td style="text-align:right">${fc(gtFlujo)}</td></tr>`;
