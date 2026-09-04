@@ -1636,24 +1636,29 @@ function computeAbsorcionViews(absData){
 
   /* --- 2. ABSORCION LOGRADA Y POR LOGRAR --- */
   let fasesLogrado;
+  /* Calcular cobrado/porCobrar/vencido desde unidades MEGASEMBRADO si existen */
+  function calcCobranza(torreList){
+    const vendidos = u.filter(x => x.status==='VENDIDO' && torreList.includes(x.torre.toUpperCase().replace(/[^A-Z]/g,'')));
+    const cobrado = vendidos.reduce((s,x)=>s+(x.totalAportado||0),0);
+    const porCobrarTiempo = vendidos.reduce((s,x)=>s+Math.max(0,(x.valorTotal||0)-(x.totalAportado||0)-(x.saldoDiferido||0)),0);
+    const vencido = vendidos.reduce((s,x)=>s+(x.saldoDiferido||0),0);
+    return {cobrado, porCobrarTiempo, vencido};
+  }
   if(ae){
     fasesLogrado = ae.fases.map(f => {
       const plTorres = ae.porLograr.filter(p => f.torres.includes(p.torre));
       const porLograrVal = plTorres.reduce((s,p)=>s+p.valorPorLograr,0);
-      return { fase:f.fase, valorTotal:f.valorTotal, logrado:f.valorLogrado, porLograr:porLograrVal, cobrado:0, porCobrarTiempo:0, vencido:0 };
+      const cobranza = u.length ? calcCobranza(f.torres) : {cobrado:0, porCobrarTiempo:0, vencido:0};
+      return { fase:f.fase, valorTotal:f.valorTotal, logrado:f.valorLogrado, porLograr:porLograrVal, ...cobranza };
     });
   } else {
     fasesLogrado = fases.map(f => {
-      const cobrado = u.filter(x=> fases[f.fase===1?0:1].torres.includes(x.torre.toUpperCase().replace(/[^A-Z]/g,'')) && x.status==='VENDIDO')
-        .reduce((s,x)=>s+(x.totalAportado||0),0);
-      const porCobrarTiempo = u.filter(x=> fases[f.fase===1?0:1].torres.includes(x.torre.toUpperCase().replace(/[^A-Z]/g,'')) && x.status==='VENDIDO')
-        .reduce((s,x)=>s+Math.max(0,(x.valorTotal||0)-(x.totalAportado||0)-(x.saldoDiferido||0)),0);
-      const vencido = u.filter(x=> fases[f.fase===1?0:1].torres.includes(x.torre.toUpperCase().replace(/[^A-Z]/g,'')) && x.status==='VENDIDO')
-        .reduce((s,x)=>s+(x.saldoDiferido||0),0);
+      const torreList = fases[f.fase===1?0:1].torres;
+      const cobranza = calcCobranza(torreList);
       let valorLib = f.valorTotal;
       if(f.fase===2) valorLib += 125000000.02;
       const porLograr = valorLib - f.valorVendido;
-      return { fase:f.fase, valorTotal:valorLib, logrado:f.valorVendido, porLograr, cobrado, porCobrarTiempo, vencido };
+      return { fase:f.fase, valorTotal:valorLib, logrado:f.valorVendido, porLograr, ...cobranza };
     });
   }
 
