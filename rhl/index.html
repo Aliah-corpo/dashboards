@@ -1637,7 +1637,9 @@ function computeAbsorcionViews(absData){
   /* --- 2. ABSORCION LOGRADA Y POR LOGRAR --- */
   let fasesLogrado;
   /* Calcular cobrado/porCobrar/vencido desde unidades MEGASEMBRADO si existen */
+  const hasRealUnits = u.some(x => x.propietario || (x.totalAportado > 0));
   function calcCobranza(torreList){
+    if(!hasRealUnits) return {cobrado:0, porCobrarTiempo:0, vencido:0};
     const vendidos = u.filter(x => x.status==='VENDIDO' && torreList.includes(x.torre.toUpperCase().replace(/[^A-Z]/g,'')));
     const cobrado = vendidos.reduce((s,x)=>s+(x.totalAportado||0),0);
     const porCobrarTiempo = vendidos.reduce((s,x)=>s+Math.max(0,(x.valorTotal||0)-(x.totalAportado||0)-(x.saldoDiferido||0)),0);
@@ -2467,20 +2469,24 @@ function aplicarAbsExcel(absExcel){
 
   /* Preservar flujos existentes si ya se habia cargado MEGASEMBRADO */
   const existingAbs = currentData.absorcion || {};
+  /* Detectar si las unidades existentes son del MEGASEMBRADO (tienen propietario y/o totalAportado) */
+  const existingHasRealUnits = existingAbs.unidades && existingAbs.unidades.some(u => u.propietario || (u.totalAportado > 0));
+
   currentData.absorcion = {
     unidades,
     monthCols: existingAbs.monthCols || [],
     fechaParseo: absExcel.fechaParseo,
     absExcelData: absExcel,
     flujosGenerados: existingAbs.flujosGenerados || false,
-    flujosStats: existingAbs.flujosStats || null
+    flujosStats: existingAbs.flujosStats || null,
+    saldoHipotecas: existingAbs.saldoHipotecas
   };
 
-  /* Si habia flujos en las unidades viejas, mantenerlos */
-  if(existingAbs.unidades && existingAbs.flujosGenerados){
+  /* Si habia unidades reales del MEGASEMBRADO, mantenerlas */
+  if(existingHasRealUnits){
     currentData.absorcion.unidades = existingAbs.unidades;
-    currentData.absorcion.monthCols = existingAbs.monthCols;
-    currentData.absorcion.flujosGenerados = true;
+    currentData.absorcion.monthCols = existingAbs.monthCols || [];
+    currentData.absorcion.flujosGenerados = existingAbs.flujosGenerados || false;
     currentData.absorcion.flujosStats = existingAbs.flujosStats;
   }
 
