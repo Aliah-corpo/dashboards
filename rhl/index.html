@@ -281,6 +281,7 @@ table.data.hide-col-6 tr>:nth-child(8){display:none;}
 .status-msg.ok{background:rgba(72,77,49,.08);color:var(--green);}
 .status-msg.err{background:rgba(154,59,59,.08);color:var(--error);}
 .status-msg.info{background:rgba(164,172,140,.1);color:var(--muted);}
+.status-msg.warn{background:rgba(176,141,87,.12);color:#8C6D40;}
 .user-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;background:var(--light);border-radius:8px;font-size:12px;margin-bottom:14px;}
 .user-email{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .sep-line{border:none;border-top:1px solid var(--border);margin:16px 0;}
@@ -1561,7 +1562,8 @@ function parseMegasembrado(file){
     reader.onload = e => {
       try {
         const XL = window.XLSX; if(!XL){ reject('SheetJS no disponible'); return; }
-        const wb = XL.read(e.target.result, {type:'array', cellDates:true});
+        /* Solo cargar la hoja MEGASEMBRADO — evita leer 200+ hojas de EDO.CTA */
+        const wb = XL.read(e.target.result, {type:'array', cellDates:true, sheets:['MEGASEMBRADO']});
         const ws = wb.Sheets['MEGASEMBRADO'];
         if(!ws){ reject('Hoja "MEGASEMBRADO" no encontrada. Hojas disponibles: '+wb.SheetNames.slice(0,10).join(', ')); return; }
 
@@ -1593,6 +1595,7 @@ function parseMegasembrado(file){
 
         const colTorre     = findCol('TORRE');
         const colDepto     = findCol('DEPTO','DEPARTAMENTO');
+        const colCruce     = findCol('CLAVE CRUCE','CRUCE OF');
         const colProto     = findCol('PROTOTIPO');
         const colMetros    = findCol('METROS','M2','M²');
         const colStatus    = findCol('STATUS VENTA','STATUS_VENTA','ESTATUS VENTA');
@@ -1606,8 +1609,15 @@ function parseMegasembrado(file){
         const colSaldoDif  = findCol('SALDO DIFERIDO');
         const colAportado  = findCol('TOTAL APORTADO','TOTAL_APORTADO');
         const colFechaIni  = findCol('FECHA INICIO','INICIO PAGOS');
-        const colFechaLiq  = findCol('FECHA DE LIQ','FECHA LIQ REAL');
+        const colFechaLiq  = findCol('FECHA DE LIQ','FECHA LIQ REAL','EXPECTATIVA DE FIRMA');
         const colFechaExp  = findCol('FORMULA FIN MES','FIN MES EXPEC','FIN MES EXP');
+        /* Columnas para plan de pagos y escrituracion */
+        const colMensualidad = findCol('MENSUALIDAD');
+        const colParcialidades = findCol('PARCIALIDADES DE PAGO','PARCIALIDADES');
+        const colSaldoEscrit = findCol('SALDO A LA ESCRITURA');
+        const colPagosFirma  = findCol('PAGOS A LA FIRMA','PAGOS FIRMA');
+        const colStatusCob   = findCol('SATUS COBRANZA','STATUS COBRANZA','ESTATUS COBRANZA');
+        const colSaldoActLiq = findCol('SALDO ACTUALIZADO','SALDO ACTUALIZADO DE LIQUIDACION');
 
         /* Detectar columnas de meses (flujos) — buscan AGO-2026, SEP-2026, etc */
         const monthCols = [];
@@ -1640,8 +1650,11 @@ function parseMegasembrado(file){
           else if(statusRaw.includes('DISPONIB') || statusRaw==='') status='DISPONIBLE';
           else status = statusRaw || 'DISPONIBLE';
 
+          /* Clave cruce: preferir columna CLAVE CRUCE OF si existe, sino construir TORRE-DEPTO */
+          const claveCruce = colCruce>=0 ? gs(r,colCruce) : (torre+'-'+depto);
+
           const u = {
-            torre, depto,
+            torre, depto, claveCruce,
             prototipo: gs(r,colProto),
             metros: gn(r,colMetros),
             status,
@@ -1654,8 +1667,15 @@ function parseMegasembrado(file){
             pagoDiferido: gn(r,colDiferido),
             saldoDiferido: gn(r,colSaldoDif),
             totalAportado: gn(r,colAportado),
+            fechaInicioPagos: colFechaIni>=0 ? r[colFechaIni] : null,
             fechaLiqReal: colFechaLiq>=0 ? r[colFechaLiq] : null,
             fechaLiqExpec: colFechaExp>=0 ? r[colFechaExp] : null,
+            mensualidad: gn(r,colMensualidad),
+            parcialidades: gn(r,colParcialidades),
+            saldoEscritura: gn(r,colSaldoEscrit),
+            pagosFirma: gn(r,colPagosFirma),
+            statusCobranza: gs(r,colStatusCob).toUpperCase(),
+            saldoActLiq: gn(r,colSaldoActLiq),
             flujos: {}
           };
 
@@ -1670,11 +1690,19 @@ function parseMegasembrado(file){
 
         if(!unidades.length){ reject('No se encontraron unidades en MEGASEMBRADO'); return; }
 
+        /* Reporte de columnas encontradas / faltantes */
+        const colMap = {TORRE:colTorre,DEPTO:colDepto,'CLAVE CRUCE':colCruce,PROTOTIPO:colProto,METROS:colMetros,'STATUS VENTA':colStatus,'VALOR TOTAL':colValor,'VALOR M2':colValorM2,PROPIETARIO:colPropie,'FIRMA CONTRATO':colFirma,DEPOSITO:colDeposito,'PAGO INICIAL':colPagoIni,'PAGO DIFERIDO':colDiferido,'SALDO DIFERIDO':colSaldoDif,'TOTAL APORTADO':colAportado,'FECHA INICIO':colFechaIni,'FECHA LIQ':colFechaLiq,'FECHA EXP':colFechaExp,MENSUALIDAD:colMensualidad,PARCIALIDADES:colParcialidades,'SALDO ESCRITURA':colSaldoEscrit,'PAGOS FIRMA':colPagosFirma,'STATUS COBRANZA':colStatusCob,'SALDO ACT LIQ':colSaldoActLiq};
+        const colsEncontradas = Object.entries(colMap).filter(([,v])=>v>=0).map(([k])=>k);
+        const colsFaltantes = Object.entries(colMap).filter(([,v])=>v<0).map(([k])=>k);
+
         resolve({
           unidades,
           monthCols: monthCols.map(m=>m.label),
           fechaParseo: new Date().toISOString(),
-          archivoHojas: wb.SheetNames.length
+          archivoHojas: wb.SheetNames.length,
+          colsEncontradas,
+          colsFaltantes,
+          sinFlujosMensuales: monthCols.length === 0
         });
       } catch(ex){ reject(ex.message||String(ex)); }
     };
@@ -1720,41 +1748,74 @@ function computeAbsorcionViews(absData){
 
   /* --- 2. ABSORCION LOGRADA Y POR LOGRAR --- */
   const fasesLogrado = fases.map(f => {
-    const cobrado = u.filter(x=> fases[f.fase===1?0:1].torres.includes(x.torre.toUpperCase().replace(/[^A-Z]/g,'')) && x.status==='VENDIDO')
-      .reduce((s,x)=>s+(x.totalAportado||0),0);
-    const porCobrarTiempo = u.filter(x=> fases[f.fase===1?0:1].torres.includes(x.torre.toUpperCase().replace(/[^A-Z]/g,'')) && x.status==='VENDIDO')
-      .reduce((s,x)=>s+Math.max(0,(x.valorTotal||0)-(x.totalAportado||0)-(x.saldoDiferido||0)),0);
-    const vencido = u.filter(x=> fases[f.fase===1?0:1].torres.includes(x.torre.toUpperCase().replace(/[^A-Z]/g,'')) && x.status==='VENDIDO')
-      .reduce((s,x)=>s+(x.saldoDiferido||0),0);
+    const faseUnits = u.filter(x=> fases[f.fase===1?0:1].torres.includes(x.torre.toUpperCase().replace(/[^A-Z]/g,'')) && x.status==='VENDIDO');
+    const cobrado = faseUnits.reduce((s,x)=>s+(x.totalAportado||0),0);
+    const porCobrar = faseUnits.reduce((s,x)=>s+Math.max(0,(x.valorTotal||0)-(x.totalAportado||0)),0);
+    /* Vencido: unidades con statusCobranza VENCIDO/MOROSO */
+    const vencido = faseUnits.reduce((s,x)=>s+(x.vencido||0),0);
+    const porCobrarEnTiempo = porCobrar - vencido;
     /* Correccion: Valor de liberacion Fase 2 + $125,000,000.02 */
     let valorLib = f.valorTotal;
     if(f.fase===2) valorLib += 125000000.02;
     const porLograr = valorLib - f.valorVendido;
-    return { fase:f.fase, valorTotal:valorLib, logrado:f.valorVendido, porLograr, cobrado, porCobrarTiempo, vencido };
+    return { fase:f.fase, valorTotal:valorLib, logrado:f.valorVendido, porLograr, cobrado, porCobrarTiempo:porCobrarEnTiempo, vencido };
   });
 
-  /* --- 3. FLUJOS ESPERADOS POR MES --- */
+  /* --- 3. FLUJOS ESPERADOS POR MES (separados plan vs escrituracion) --- */
+  /* Previo acumulado total */
+  const previoAcumulado = u.filter(x=>x.status==='VENDIDO').reduce((s,x)=>s+(x.previoAcumulado||x.totalAportado||0),0);
+  /* Vencido total */
+  const vencidoTotal = u.filter(x=>x.status==='VENDIDO').reduce((s,x)=>s+(x.vencido||0),0);
+
+  /* Plan de pagos por mes */
+  const planPorMes = {};
+  /* Escrituracion por mes */
+  const escritPorMes = {};
+  /* Total (plan+escrit) por mes */
   const flujosPorMes = {};
-  monthLabels.forEach(ml => { flujosPorMes[ml] = 0; });
+
+  monthLabels.forEach(ml => { planPorMes[ml]=0; escritPorMes[ml]=0; flujosPorMes[ml]=0; });
   u.forEach(unit => {
-    for(const [ml,val] of Object.entries(unit.flujos||{})){
+    for(const [ml,val] of Object.entries(unit.flujosPlan||{})){
+      planPorMes[ml] = (planPorMes[ml]||0) + val;
+      flujosPorMes[ml] = (flujosPorMes[ml]||0) + val;
+    }
+    for(const [ml,val] of Object.entries(unit.flujosEscrit||{})){
+      escritPorMes[ml] = (escritPorMes[ml]||0) + val;
       flujosPorMes[ml] = (flujosPorMes[ml]||0) + val;
     }
   });
 
-  /* Flujos por fase y mes */
-  const flujosFase = [{fase:1, meses:{}},{fase:2, meses:{}}];
-  monthLabels.forEach(ml => { flujosFase[0].meses[ml]=0; flujosFase[1].meses[ml]=0; });
+  /* Flujos por fase y mes (separados) */
+  const flujosFase = [
+    {fase:1, plan:{}, escrit:{}, total:{}, previo:0, vencido:0},
+    {fase:2, plan:{}, escrit:{}, total:{}, previo:0, vencido:0}
+  ];
+  monthLabels.forEach(ml => {
+    flujosFase[0].plan[ml]=0; flujosFase[0].escrit[ml]=0; flujosFase[0].total[ml]=0;
+    flujosFase[1].plan[ml]=0; flujosFase[1].escrit[ml]=0; flujosFase[1].total[ml]=0;
+  });
   u.forEach(unit => {
     const t = unit.torre.toUpperCase().replace(/[^A-Z]/g,'');
     const fIdx = (ABS_TORRES_FASE[t]?.fase||1)===1?0:1;
-    for(const [ml,val] of Object.entries(unit.flujos||{})){
-      flujosFase[fIdx].meses[ml] = (flujosFase[fIdx].meses[ml]||0) + val;
+    flujosFase[fIdx].previo += (unit.previoAcumulado||unit.totalAportado||0);
+    flujosFase[fIdx].vencido += (unit.vencido||0);
+    for(const [ml,val] of Object.entries(unit.flujosPlan||{})){
+      flujosFase[fIdx].plan[ml] = (flujosFase[fIdx].plan[ml]||0) + val;
+      flujosFase[fIdx].total[ml] = (flujosFase[fIdx].total[ml]||0) + val;
+    }
+    for(const [ml,val] of Object.entries(unit.flujosEscrit||{})){
+      flujosFase[fIdx].escrit[ml] = (flujosFase[fIdx].escrit[ml]||0) + val;
+      flujosFase[fIdx].total[ml] = (flujosFase[fIdx].total[ml]||0) + val;
     }
   });
 
   return {
-    torres, fases, fasesLogrado, flujosPorMes, flujosFase, monthLabels,
+    torres, fases, fasesLogrado,
+    flujosPorMes, planPorMes, escritPorMes,
+    previoAcumulado, vencidoTotal,
+    flujosFase, monthLabels,
+    corteLabel: absData.corteLabel || '',
     totalUnidades: u.length,
     totalVendidos: u.filter(x=>x.status==='VENDIDO').length,
     totalApartados: u.filter(x=>x.status==='APARTADO').length,
@@ -1878,33 +1939,98 @@ function buildAbsorcionHtml(absData){
   /* ===== SUB-TAB 3: FLUJOS ESPERADOS ===== */
   html += `<div class="abs-panel" id="abs-flujos">`;
 
-  /* Chart: flujos mensuales */
-  html += `<div class="card"><p class="card-title">Flujos Esperados por Mes</p><div class="chart-wrap" style="height:260px"><canvas id="chart-abs-flujos"></canvas></div></div>`;
+  /* Hero: resumen de flujos */
+  const totalPlan = Object.values(views.planPorMes).reduce((s,v)=>s+v,0);
+  const totalEscrit = Object.values(views.escritPorMes).reduce((s,v)=>s+v,0);
+  const totalFlujos = totalPlan + totalEscrit;
 
-  /* Table */
+  html += `<div class="abs-hero" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat-tile"><p class="stat-label">Previo Acumulado</p><p class="stat-value" style="font-size:16px;color:var(--green)">${fc(views.previoAcumulado)}</p><p class="stat-sub">Cobrado al corte</p></div>
+    <div class="stat-tile"><p class="stat-label">Vencido</p><p class="stat-value" style="font-size:16px;color:var(--error)">${fc(views.vencidoTotal)}</p><p class="stat-sub">Antes del corte</p></div>
+    <div class="stat-tile"><p class="stat-label">Plan de Pagos</p><p class="stat-value" style="font-size:16px;color:var(--olive)">${fc(totalPlan)}</p><p class="stat-sub">Mensualidades futuras</p></div>
+    <div class="stat-tile"><p class="stat-label">Escrituracion</p><p class="stat-value" style="font-size:16px;color:var(--brass-dark)">${fc(totalEscrit)}</p><p class="stat-sub">Contingente a firma</p></div>
+  </div>`;
+
+  /* Chart: flujos mensuales con barras apiladas (plan + escrituracion) */
+  html += `<div class="card"><p class="card-title">Flujos Esperados por Mes</p>
+    <p style="font-size:11px;color:var(--muted);margin:-4px 0 8px">Plan de pagos (mensualidades) + Escrituracion (contingente a firma)</p>
+    <div class="chart-wrap" style="height:280px"><canvas id="chart-abs-flujos"></canvas></div></div>`;
+
+  /* Tabla completa: PREVIO | VENCIDO | meses... | TOTAL PLAN | TOTAL ESCRIT | GRAN TOTAL */
   const ml = views.monthLabels;
   if(ml.length){
-    html += `<div class="card"><p class="card-title">Tabla de Flujos</p><div class="abs-flujos-tbl-wrap"><table class="abs-flujos"><thead><tr><th>Concepto</th>`;
+    html += `<div class="card"><p class="card-title">Desglose de Flujos</p><div class="abs-flujos-tbl-wrap"><table class="abs-flujos"><thead><tr>
+      <th>Concepto</th><th>Previo</th><th>Vencido</th>`;
     ml.forEach(m=>{ html+=`<th>${m}</th>`; });
-    html += `<th>Total</th></tr></thead><tbody>`;
+    html += `<th style="background:rgba(72,77,49,.08)">Total Plan</th>
+      <th style="background:rgba(176,141,87,.08)">Escrituracion</th>
+      <th style="background:rgba(40,40,35,.06)">Gran Total</th></tr></thead><tbody>`;
 
-    /* Fase 1 */
-    let totF1 = 0;
-    html += `<tr style="background:rgba(164,172,140,.06)"><td style="font-weight:700">Fase 1</td>`;
-    ml.forEach(m=>{const v=views.flujosFase[0].meses[m]||0; totF1+=v; html+=`<td>${fc(v)}</td>`;});
-    html += `<td style="font-weight:700">${fc(totF1)}</td></tr>`;
+    /* --- Fila: Plan de Pagos (mensualidades) --- */
+    let totPlanRow = 0;
+    html += `<tr style="background:rgba(164,172,140,.04)"><td style="font-weight:700;white-space:nowrap">Plan de Pagos</td>
+      <td style="color:var(--muted)">-</td><td style="color:var(--error)">${fc(views.vencidoTotal)}</td>`;
+    ml.forEach(m=>{const v=views.planPorMes[m]||0; totPlanRow+=v; html+=`<td>${fc(v)}</td>`;});
+    html += `<td style="font-weight:700;background:rgba(72,77,49,.06)">${fc(totPlanRow + views.vencidoTotal)}</td>
+      <td style="color:var(--muted)">-</td>
+      <td style="font-weight:700">${fc(totPlanRow + views.vencidoTotal)}</td></tr>`;
 
-    /* Fase 2 */
-    let totF2 = 0;
-    html += `<tr style="background:rgba(176,141,87,.06)"><td style="font-weight:700">Fase 2</td>`;
-    ml.forEach(m=>{const v=views.flujosFase[1].meses[m]||0; totF2+=v; html+=`<td>${fc(v)}</td>`;});
-    html += `<td style="font-weight:700">${fc(totF2)}</td></tr>`;
+    /* --- Fila: Escrituracion --- */
+    let totEscritRow = 0;
+    html += `<tr style="background:rgba(176,141,87,.04)"><td style="font-weight:700;white-space:nowrap">Escrituracion</td>
+      <td style="color:var(--muted)">-</td><td style="color:var(--muted)">-</td>`;
+    ml.forEach(m=>{const v=views.escritPorMes[m]||0; totEscritRow+=v; html+=`<td>${fc(v)}</td>`;});
+    html += `<td style="color:var(--muted)">-</td>
+      <td style="font-weight:700;background:rgba(176,141,87,.06)">${fc(totEscritRow)}</td>
+      <td style="font-weight:700">${fc(totEscritRow)}</td></tr>`;
 
-    /* Total */
-    let gt = 0;
-    html += `<tr class="abs-flujos-total"><td>Total</td>`;
-    ml.forEach(m=>{const v=views.flujosPorMes[m]||0; gt+=v; html+=`<td>${fc(v)}</td>`;});
-    html += `<td>${fc(gt)}</td></tr>`;
+    /* --- Fila: Balance por Mes (plan + escrituracion) --- */
+    let gtBalance = 0;
+    html += `<tr class="abs-flujos-total"><td>Balance por Mes</td>
+      <td style="font-weight:700">${fc(views.previoAcumulado)}</td>
+      <td style="font-weight:700;color:var(--error)">${fc(views.vencidoTotal)}</td>`;
+    ml.forEach(m=>{
+      const v = (views.planPorMes[m]||0) + (views.escritPorMes[m]||0);
+      gtBalance += v;
+      html+=`<td>${fc(v)}</td>`;
+    });
+    html += `<td>${fc(totalPlan + views.vencidoTotal)}</td>
+      <td>${fc(totalEscrit)}</td>
+      <td style="font-weight:800">${fc(views.previoAcumulado + views.vencidoTotal + gtBalance)}</td></tr>`;
+
+    html += `</tbody></table></div></div>`;
+
+    /* --- Desglose por Fase --- */
+    html += `<div class="card"><p class="card-title">Flujos por Fase</p><div class="abs-flujos-tbl-wrap"><table class="abs-flujos"><thead><tr>
+      <th>Fase</th><th>Previo</th><th>Vencido</th>`;
+    ml.forEach(m=>{ html+=`<th>${m}</th>`; });
+    html += `<th>Total Plan</th><th>Escrituracion</th><th>Gran Total</th></tr></thead><tbody>`;
+
+    views.flujosFase.forEach((ff,idx) => {
+      const bg = idx===0 ? 'rgba(164,172,140,.04)' : 'rgba(176,141,87,.04)';
+      let totPlanF=0, totEscritF=0;
+      html += `<tr style="background:${bg}"><td style="font-weight:700">Fase ${ff.fase}</td>
+        <td>${fc(ff.previo)}</td><td style="color:var(--error)">${fc(ff.vencido)}</td>`;
+      ml.forEach(m=>{
+        const pv = ff.plan[m]||0; const ev = ff.escrit[m]||0;
+        totPlanF+=pv; totEscritF+=ev;
+        html+=`<td>${fc(pv+ev)}</td>`;
+      });
+      html += `<td>${fc(totPlanF + ff.vencido)}</td><td>${fc(totEscritF)}</td>
+        <td style="font-weight:700">${fc(ff.previo + ff.vencido + totPlanF + totEscritF)}</td></tr>`;
+    });
+
+    /* Total fases */
+    let gtPlan=0, gtEscr=0;
+    html += `<tr class="abs-flujos-total"><td>Total</td>
+      <td>${fc(views.previoAcumulado)}</td><td>${fc(views.vencidoTotal)}</td>`;
+    ml.forEach(m=>{
+      const v = (views.planPorMes[m]||0)+(views.escritPorMes[m]||0);
+      gtPlan += views.planPorMes[m]||0; gtEscr += views.escritPorMes[m]||0;
+      html+=`<td>${fc(v)}</td>`;
+    });
+    html += `<td>${fc(gtPlan + views.vencidoTotal)}</td><td>${fc(gtEscr)}</td>
+      <td style="font-weight:800">${fc(views.previoAcumulado + views.vencidoTotal + gtPlan + gtEscr)}</td></tr>`;
 
     html += `</tbody></table></div></div>`;
   }
@@ -2003,7 +2129,7 @@ function renderAbsorcionCharts(absData){
     });
   }
 
-  /* Chart 3: Flujos mensuales (line/bar) */
+  /* Chart 3: Flujos mensuales — barras apiladas plan + escrituracion */
   const ctx3 = document.getElementById('chart-abs-flujos');
   if(ctx3 && views.monthLabels.length){
     if(charts['abs-flujos']) charts['abs-flujos'].destroy();
@@ -2012,8 +2138,8 @@ function renderAbsorcionCharts(absData){
       data:{
         labels: views.monthLabels,
         datasets:[
-          {label:'Fase 1', data:views.monthLabels.map(m=>views.flujosFase[0].meses[m]||0), backgroundColor:'rgba(72,77,49,.65)'},
-          {label:'Fase 2', data:views.monthLabels.map(m=>views.flujosFase[1].meses[m]||0), backgroundColor:'rgba(176,141,87,.55)'}
+          {label:'Plan de Pagos', data:views.monthLabels.map(m=>views.planPorMes[m]||0), backgroundColor:'rgba(72,77,49,.7)', stack:'flujos'},
+          {label:'Escrituracion', data:views.monthLabels.map(m=>views.escritPorMes[m]||0), backgroundColor:'rgba(176,141,87,.6)', stack:'flujos'}
         ]
       },
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11,family:"'DM Sans'"}}},
@@ -2062,10 +2188,13 @@ function parseListaPrecios(file){
     reader.onload = e => {
       try {
         const XL = window.XLSX; if(!XL){ reject('SheetJS no disponible'); return; }
-        const wb = XL.read(e.target.result, {type:'array', cellDates:true});
-        /* Buscar hoja con "CONTROL" o "PRECIOS" o la primera */
-        let wsName = wb.SheetNames.find(n=>n.toUpperCase().includes('CONTROL') || n.toUpperCase().includes('PRECIO'));
-        if(!wsName) wsName = wb.SheetNames[0];
+        /* Primer paso: leer solo nombres de hojas para identificar la correcta */
+        const wbNames = XL.read(e.target.result, {type:'array', bookSheets:true});
+        const allNames = Object.keys(wbNames.Sheets||wbNames);
+        let wsName = allNames.find(n=>n.toUpperCase().includes('CONTROL') || n.toUpperCase().includes('PRECIO'));
+        if(!wsName) wsName = allNames[0]||'Sheet1';
+        /* Cargar solo la hoja necesaria */
+        const wb = XL.read(e.target.result, {type:'array', cellDates:true, sheets:[wsName]});
         const ws = wb.Sheets[wsName];
         if(!ws){ reject('No se encontro hoja de precios'); return; }
 
@@ -2150,8 +2279,8 @@ function mergeAbsorcionConPrecios(absData, preciosData){
   let matched = 0, soloMega = 0, soloPrecios = 0, priceDiffs = 0;
 
   for(const u of absData.unidades){
-    /* Construir clave compatible: TORRE-DEPTO */
-    const claveUpper = (u.torre + '-' + u.depto).toUpperCase().replace(/\s/g,'');
+    /* Usar claveCruce del parser (CLAVE CRUCE OF o TORRE-DEPTO construida) */
+    const claveUpper = (u.claveCruce || (u.torre + '-' + u.depto)).toUpperCase().replace(/\s/g,'');
     const precio = precioMap[claveUpper];
     if(precio){
       matched++;
@@ -2177,7 +2306,7 @@ function mergeAbsorcionConPrecios(absData, preciosData){
   }
 
   /* Unidades en precios pero no en MEGA */
-  const megaClaves = new Set(absData.unidades.map(u=>(u.torre+'-'+u.depto).toUpperCase().replace(/\s/g,'')));
+  const megaClaves = new Set(absData.unidades.map(u=>(u.claveCruce || (u.torre+'-'+u.depto)).toUpperCase().replace(/\s/g,'')));
   for(const [clave, p] of Object.entries(precioMap)){
     if(!megaClaves.has(clave)){
       soloPrecios++;
@@ -2191,68 +2320,147 @@ function mergeAbsorcionConPrecios(absData, preciosData){
   return absData;
 }
 
-/* ---------- GENERAR FLUJOS SINTETICOS ---------- */
+/* ---------- GENERAR FLUJOS CON PLAN DE PAGOS Y ESCRITURACION ---------- */
 function generarFlujosLiquidacion(absData){
-  /* Usa la columna BM "Formula Fin mes Expec / firma" del MEGASEMBRADO
-     para colocar el saldo pendiente de cada unidad vendida en el mes
-     de liquidacion esperada a escritura. */
+  /*
+   * Logica correcta de flujos:
+   * 1. PREVIO ACUMULADO = totalAportado (todo lo cobrado al corte)
+   * 2. VENCIDO = pagos que debieron hacerse antes del corte y no se hicieron
+   *    Se calcula: mensualidades que ya pasaron - lo que efectivamente se pago
+   * 3. PLAN DE PAGOS = mensualidad distribuida mes a mes desde corte hacia adelante
+   * 4. ESCRITURACION = saldoEscritura colocado en mes de liquidacion esperada
+   *
+   * Referencia: sheet "EXPECT FLUJOS POR MES" del archivo de flujos
+   */
   const MES_LABEL = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  const mesMap = {ENE:0,FEB:1,MAR:2,ABR:3,MAY:4,JUN:5,JUL:6,AGO:7,SEP:8,OCT:9,NOV:10,DIC:11};
 
-  function parseDateToLabel(val){
-    /* SheetJS con cellDates:true puede dar Date, string DD/MM/YYYY o serial */
+  function parseDateToObj(val){
     if(!val) return null;
     let d;
     if(val instanceof Date){ d = val; }
     else if(typeof val === 'string'){
-      const parts = val.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-      if(!parts) return null;
-      d = new Date(parseInt(parts[3]), parseInt(parts[2])-1, parseInt(parts[1]));
+      /* Intentar DD/MM/YYYY o MM/DD/YYYY o YYYY-MM-DD */
+      let parts = val.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      if(parts) d = new Date(parseInt(parts[3]), parseInt(parts[2])-1, parseInt(parts[1]));
+      else {
+        parts = val.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+        if(parts) d = new Date(parseInt(parts[1]), parseInt(parts[2])-1, parseInt(parts[3]));
+        else return null;
+      }
     } else if(typeof val === 'number'){
-      /* Excel serial date */
       d = new Date((val - 25569) * 86400000);
     } else return null;
     if(isNaN(d.getTime())) return null;
-    return { label: MES_LABEL[d.getMonth()]+'-'+d.getFullYear(), date: d };
+    return d;
   }
 
-  let sinFecha = 0, conFecha = 0, yaLiquidados = 0;
+  function dateToLabel(d){ return MES_LABEL[d.getMonth()]+'-'+d.getFullYear(); }
+  function labelToNum(lbl){ const [m,y]=lbl.split('-'); return parseInt(y)*12+(mesMap[m]||0); }
+  function numToLabel(n){ const y=Math.floor(n/12); const m=n%12; return MES_LABEL[m]+'-'+y; }
+
+  /* Fecha de corte: usar la mas reciente entre datos o Sep 2026 por defecto */
   const hoy = new Date();
+  /* El corte es el ultimo dia del mes anterior al primer mes de proyeccion.
+     Si estamos en Oct 2026, el corte es 30-Sep-2026, y el primer mes futuro es Oct 2026.
+     Usamos la fecha de parseo o la fecha actual como referencia. */
+  const fechaParseo = absData.fechaParseo ? new Date(absData.fechaParseo) : hoy;
+  const corteDate = new Date(fechaParseo.getFullYear(), fechaParseo.getMonth(), 1); /* 1er dia del mes de parseo */
+  const corteLabel = dateToLabel(new Date(corteDate.getFullYear(), corteDate.getMonth()-1, 1)); /* mes anterior al corte */
+  const corteNum = labelToNum(corteLabel);
+  const primerMesFuturo = corteNum + 1; /* primer mes de proyeccion */
+
+  let stats = { conPlan:0, sinMensualidad:0, yaLiquidados:0, conEscrituracion:0, sinFechaLiq:0 };
 
   for(const u of absData.unidades){
-    if(u.status!=='VENDIDO') continue;
+    u.flujosPlan = {};     /* plan de pagos mensuales */
+    u.flujosEscrit = {};   /* flujo por escrituracion */
+    u.previoAcumulado = 0; /* total cobrado al corte */
+    u.vencido = 0;         /* monto vencido antes del corte */
 
-    /* Saldo pendiente a liquidacion = valorTotal - totalAportado */
-    const pendiente = Math.max(0, (u.valorTotal||0) - (u.totalAportado||0));
-    if(pendiente < 100) { yaLiquidados++; continue; }
+    if(u.status!=='VENDIDO' && u.status!=='APARTADO') continue;
+    if(u.status==='APARTADO') continue; /* apartados no tienen plan de pagos aun */
 
-    /* Usar fechaLiqExpec (BM) como fecha de liquidacion a escritura */
-    const parsed = parseDateToLabel(u.fechaLiqExpec) || parseDateToLabel(u.fechaLiqReal);
-    if(!parsed){ sinFecha++; continue; }
+    const pendienteTotal = Math.max(0, (u.valorTotal||0) - (u.totalAportado||0));
+    u.previoAcumulado = u.totalAportado || 0;
 
-    conFecha++;
-    u.fechaLiqMes = parsed.label;
+    if(pendienteTotal < 100){ stats.yaLiquidados++; continue; }
 
-    /* Colocar el pendiente completo en ese mes */
-    if(!u.flujos) u.flujos = {};
-    u.flujos[parsed.label] = (u.flujos[parsed.label]||0) + pendiente;
+    /* --- PLAN DE PAGOS (mensualidades) --- */
+    const mensualidad = u.mensualidad || 0;
+    const parcialidades = u.parcialidades || 0;
+    const fechaIni = parseDateToObj(u.fechaInicioPagos);
+
+    if(mensualidad > 0 && parcialidades > 0 && fechaIni){
+      stats.conPlan++;
+      const iniLabel = dateToLabel(fechaIni);
+      const iniNum = labelToNum(iniLabel);
+
+      /* Calcular cuantas mensualidades ya deberian haberse pagado al corte */
+      const mesesTranscurridos = Math.max(0, primerMesFuturo - iniNum);
+      const mesesPagados = Math.min(mesesTranscurridos, parcialidades);
+      const mesesRestantes = parcialidades - mesesPagados;
+
+      /* Estimacion de vencido: lo que debio pagarse en plan vs lo pagado
+         (aproximacion: mensualidad * meses transcurridos - (totalAportado - pagoInicial - deposito - pagoDiferido)) */
+      const pagosEstructura = (u.deposito||0) + (u.pagoInicial||0) + (u.pagoDiferido||0);
+      const pagosPlanAcumulados = mensualidad * mesesPagados;
+      const pagadoEnPlan = Math.max(0, (u.totalAportado||0) - pagosEstructura);
+      const vencidoCalc = Math.max(0, pagosPlanAcumulados - pagadoEnPlan);
+
+      /* Si tiene status cobranza VENCIDO o MOROSO, usar el calculo */
+      if(u.statusCobranza && (u.statusCobranza.includes('VENCID') || u.statusCobranza.includes('MOROS'))){
+        u.vencido = vencidoCalc;
+      } else {
+        u.vencido = 0; /* AL CORRIENTE */
+      }
+
+      /* Distribuir mensualidades futuras mes a mes desde primerMesFuturo */
+      for(let m=0; m<mesesRestantes; m++){
+        const mesNum = primerMesFuturo + m;
+        const lbl = numToLabel(mesNum);
+        u.flujosPlan[lbl] = mensualidad;
+      }
+    } else {
+      stats.sinMensualidad++;
+      /* Sin datos de mensualidad: no podemos calcular plan de pagos */
+    }
+
+    /* --- ESCRITURACION (contingente) --- */
+    /* El saldo a la escritura se coloca en el mes de liquidacion esperada */
+    const saldoEscrit = u.saldoEscritura || Math.max(0, (u.valorTotal||0) - (u.totalAportado||0) - (mensualidad * (u.parcialidades||0)));
+    const fechaLiq = parseDateToObj(u.fechaLiqExpec) || parseDateToObj(u.fechaLiqReal);
+
+    if(saldoEscrit > 100 && fechaLiq){
+      const liqLabel = dateToLabel(fechaLiq);
+      u.flujosEscrit[liqLabel] = saldoEscrit;
+      u.fechaLiqMes = liqLabel;
+      stats.conEscrituracion++;
+    } else if(saldoEscrit > 100){
+      stats.sinFechaLiq++;
+    }
   }
 
-  /* Actualizar monthCols con todas las fechas de liquidacion */
-  const allMonths = new Set(absData.monthCols||[]);
+  /* --- Construir monthCols completo (todos los meses con actividad) --- */
+  const allMonths = new Set();
   absData.unidades.forEach(u => {
-    if(u.fechaLiqMes) allMonths.add(u.fechaLiqMes);
-    Object.keys(u.flujos||{}).forEach(ml => allMonths.add(ml));
+    Object.keys(u.flujosPlan||{}).forEach(ml => allMonths.add(ml));
+    Object.keys(u.flujosEscrit||{}).forEach(ml => allMonths.add(ml));
   });
 
-  /* Ordenar cronologicamente */
-  const mesMap = {ENE:0,FEB:1,MAR:2,ABR:3,MAY:4,JUN:5,JUL:6,AGO:7,SEP:8,OCT:9,NOV:10,DIC:11};
-  const sorted = Array.from(allMonths).sort((a,b) => {
-    const [ma,ya] = a.split('-'); const [mb,yb] = b.split('-');
-    return (parseInt(ya)*12+(mesMap[ma]||0)) - (parseInt(yb)*12+(mesMap[mb]||0));
-  });
+  const sorted = Array.from(allMonths).sort((a,b) => labelToNum(a) - labelToNum(b));
   absData.monthCols = sorted;
   absData.flujosGenerados = true;
-  absData.flujosStats = { conFecha, sinFecha, yaLiquidados };
+  absData.corteLabel = corteLabel;
+  absData.flujosStats = stats;
+
+  /* --- Agregar flujos combinados por compatibilidad (u.flujos = plan + escrituracion) --- */
+  for(const u of absData.unidades){
+    u.flujos = {};
+    for(const [ml,v] of Object.entries(u.flujosPlan||{})) u.flujos[ml] = (u.flujos[ml]||0) + v;
+    for(const [ml,v] of Object.entries(u.flujosEscrit||{})) u.flujos[ml] = (u.flujos[ml]||0) + v;
+  }
+
   return absData;
 }
 
@@ -2342,9 +2550,15 @@ async function handleAbsorcionUpload(){
       : '';
     const fs = parsed.flujosStats;
     const flujosMsg = parsed.flujosGenerados
-      ? ` — Flujos: ${fs?.conFecha||0} con fecha, ${fs?.sinFecha||0} sin fecha, ${fs?.yaLiquidados||0} ya liquidados`
+      ? ` — Flujos: ${fs?.conPlan||0} con plan de pagos, ${fs?.conEscrituracion||0} con escrituracion, ${fs?.sinMensualidad||0} sin mensualidad, ${fs?.yaLiquidados||0} ya liquidados`
       : '';
-    setAbsStatus('Procesado: '+parsed.unidades.length+' unidades.'+statsMsg+flujosMsg,'ok');
+    const colsMsg = parsed.colsFaltantes?.length
+      ? ` — Columnas no encontradas: ${parsed.colsFaltantes.join(', ')}`
+      : '';
+    const flujoWarn = parsed.sinFlujosMensuales
+      ? ' — AVISO: No se encontraron columnas de meses (ENE-2026, etc.), flujos mensuales estaran vacios.'
+      : ` — ${parsed.monthCols?.length||0} meses de flujos detectados`;
+    setAbsStatus('Procesado: '+parsed.unidades.length+' unidades.'+statsMsg+flujosMsg+colsMsg+flujoWarn, parsed.sinFlujosMensuales?'warn':'ok');
   } catch(ex){
     setAbsStatus('Error: '+(ex.message||String(ex)),'err');
   }
@@ -2474,7 +2688,8 @@ function buildConsLogrado(){
   const le2 = currentData.logrado?.e2;
   if(!le1 && !le2) return null;
   const result = {};
-  for(const mes of ['jun','jul']){
+  const allMeses = new Set([...Object.keys(le1||{}), ...Object.keys(le2||{})]);
+  for(const mes of allMeses){
     const a = le1?.[mes], b = le2?.[mes];
     if(!a && !b) continue;
     const lg = {}, pl = {};
@@ -2552,11 +2767,14 @@ function renderTab(id, tabData, logradoData) {
     /* Contenedor para barras comparativas (se llena via JS) */
     logradoHtml += `<div id="comp-bars-${id}"></div>`;
 
-    for(const mes of ['jun','jul']){
+    const mesLabels={ene:'Enero',feb:'Febrero',mar:'Marzo',abr:'Abril',may:'Mayo',jun:'Junio',jul:'Julio',ago:'Agosto',sep:'Septiembre',oct:'Octubre',nov:'Noviembre',dic:'Diciembre'};
+    const mesesOrden=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    const mesesDisponibles=Object.keys(logradoData).filter(m=>logradoData[m]).sort((a,b)=>mesesOrden.indexOf(a)-mesesOrden.indexOf(b));
+    for(const mes of mesesDisponibles){
       if(!logradoData[mes]) continue;
       const lg=logradoData[mes].logrado, pl=logradoData[mes].porLograr;
       const abs=logradoData[mes].absorcion;
-      const label=mes==='jun'?'Junio 2026':'Julio 2026';
+      const label=(mesLabels[mes]||mes)+' 2026';
       const uid = id+'_'+mes;
 
       /* Helper: barra con total encima */
@@ -3674,6 +3892,12 @@ function renderAdminPanel(){
   document.getElementById('admin-body').innerHTML=`
     <div class="user-bar"><span class="user-email">${userSession.user.email}</span><button class="btn btn-danger btn-sm" onclick="handleLogout()">Cerrar sesion</button></div>
     <div class="modal-section"><h3>Historial</h3><div class="ver-list">${rows||'<p style="font-size:12px;color:var(--muted);margin:0">Sin versiones aun.</p>'}</div></div>
+    <div class="modal-section" style="background:rgba(95,104,68,.08);border-radius:var(--radius);padding:14px;margin-bottom:12px">
+      <h3 style="margin-top:0">Sincronizar datos embebidos</h3>
+      <p style="font-size:11px;color:var(--muted);margin:0 0 10px">Graba los datos que ya estan dentro de este HTML (EMBEDDED_DATA) como version activa en Supabase. Util cuando los datos embebidos son mas recientes que la version en linea.</p>
+      <button class="btn btn-primary" id="sync-embed-btn" onclick="handleSyncEmbedded()" style="width:100%">Sincronizar datos embebidos</button>
+      <div class="status-msg" id="sync-status" style="display:none"></div>
+    </div>
     <hr class="sep-line">
     ${buildPartidasHtml()}
     <div class="modal-section"><h3>Subir nueva version</h3><div class="form-group"><label>Etiqueta</label><input type="text" id="up-label" value="v5 &middot; ${today}"></div><div class="form-group"><label>Fecha de corte del dato</label><input type="date" id="up-corte"><p style="font-size:11px;color:var(--muted);margin:5px 0 0">La fecha que representan las cifras, no la de hoy. Un Excel "a julio" lleva 31/07.</p></div><div class="form-group"><label>Archivo Excel (.xlsx)</label><input type="file" id="up-file" accept=".xlsx,.xls"></div><button class="btn btn-primary" id="up-btn" onclick="handleUpload()" style="width:100%">Subir y activar</button><div class="status-msg" id="admin-status" style="display:none"></div></div>
@@ -3683,6 +3907,39 @@ function renderAdminPanel(){
     ${buildAbsorcionAdminHtml()}
     <hr class="sep-line">
     <div class="modal-section"><h3>Editar conceptos</h3><p style="font-size:11px;color:var(--muted);margin:0 0 10px">Nombre de cada fila. Los cambios se guardan en Supabase.</p>${buildLabelsFormHtml()}<button class="btn btn-primary" id="save-labels-btn" onclick="saveLabels()" style="width:100%;margin-top:10px">Guardar etiquetas</button></div>`;
+}
+
+async function handleSyncEmbedded(){
+  if(!supa||!isAdmin)return;
+  const btn=document.getElementById('sync-embed-btn');
+  const st=document.getElementById('sync-status');
+  function setSyncSt(msg,type){if(!st)return;st.style.display='block';st.className='status-msg'+(type==='err'?' error':'')+(type==='ok'?' success':'');st.textContent=msg;}
+  btn.disabled=true;btn.textContent='Sincronizando...';setSyncSt('Preparando datos embebidos...','info');
+  try{
+    const embData=JSON.parse(JSON.stringify(EMBEDDED_DATA));
+    if(currentData.labels) embData.labels=currentData.labels;
+    if(currentData.palancas) embData.palancas=currentData.palancas;
+    if(currentData.equityTotal) embData.equityTotal=currentData.equityTotal;
+    const label='Sync embebidos '+new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+    const corte=new Date().toISOString().slice(0,10);
+    /* Desactivar versiones previas */
+    await supa.from('cierre_versiones').update({is_active:false}).eq('dashboard_id',DASHBOARD_ID).eq('is_active',true);
+    const{error}=await supa.from('cierre_versiones').insert({
+      dashboard_id:DASHBOARD_ID,version_label:label,
+      fecha_corte:corte,uploaded_by:userSession.user.email,
+      data:embData,is_active:true
+    });
+    if(error)throw new Error(error.message);
+    currentData=rellenarFaltantes(embData,EMBEDDED_DATA);
+    activeVerId=null;usingLive=true;
+    if(!currentData.palancas) currentData.palancas=JSON.parse(JSON.stringify(PAL_DEFAULT));
+    recalculate('e1');recalculate('e2');recalculate('cons');
+    fijarRefConsolidado();pintarPalancas();renderAll();
+    await cargarCortes();await loadVersionHistory();
+    setSyncSt('Datos embebidos sincronizados como version activa.','ok');
+    setTimeout(()=>renderAdminPanel(),1500);
+  }catch(ex){setSyncSt('Error: '+(ex.message||String(ex)),'err');}
+  btn.disabled=false;btn.textContent='Sincronizar datos embebidos';
 }
 
 async function handleActivate(verId){const res=await activateVersion(verId);if(res.error){alert('Error: '+res.error);return;}renderAdminPanel();}
@@ -3723,14 +3980,32 @@ function parseExcelData(file){
         const raw=XLIBX.utils.sheet_to_json(ws,{header:1,defval:null});
         const hdr=raw[2]||[];
 
-        /* Auto-detect E1/E2 column ranges */
-        /* E1: cols C-I (indices 2-8) = up to 7 scenarios */
-        /* E2: cols U-Z (indices 20-25) = up to 6 scenarios */
-        /* Consolidado: AJ-AK (indices 35-36) */
+        /* Auto-detect E1/E2/Consolidado column ranges dynamically */
+        const row2=raw[1]||[];
         let E1=[],E2=[],CS=[];
-        for(let c=2;c<=8;c++){ if(hdr[c]&&String(hdr[c]).toLowerCase().includes('escen')) E1.push(c); }
-        for(let c=20;c<=25;c++){ if(hdr[c]&&String(hdr[c]).toLowerCase().includes('escen')) E2.push(c); }
-        for(let c=35;c<=36;c++){ if(hdr[c]) CS.push(c); }
+
+        /* E1: scan from col 2 while header contains "escen" */
+        for(let c=2;c<hdr.length;c++){
+          if(hdr[c]&&String(hdr[c]).toLowerCase().includes('escen')) E1.push(c);
+          else if(E1.length) break;
+        }
+
+        /* E2: find "E2" zone marker in row 2 (after E1), then scan for "escen" headers */
+        let e2Start=-1;
+        for(let c=(E1.length?E1[E1.length-1]+1:12);c<hdr.length;c++){
+          if(row2[c]&&String(row2[c]).toUpperCase().trim()==='E2'){e2Start=c;break;}
+        }
+        if(e2Start>=0){
+          for(let c=e2Start;c<hdr.length;c++){
+            if(hdr[c]&&String(hdr[c]).toLowerCase().includes('escen')) E2.push(c);
+            else if(E2.length) break;
+          }
+        }
+
+        /* Consolidado: find "AMBAS" in row 3 headers */
+        for(let c=0;c<hdr.length;c++){
+          if(hdr[c]&&String(hdr[c]).toUpperCase().trim()==='AMBAS') CS.push(c);
+        }
 
         /* Fallback to v5 defaults */
         if(!E1.length) E1=[2,3,4,5,6,7,8];
@@ -3748,6 +4023,7 @@ function parseExcelData(file){
           ['proyectoEjecutivo','proyecto ejecutivo'],['activosFijos','activos fijos'],
           ['legal','legal'],['sat','sat (bh'],
           ['publicidad','publicidad'],['comisionComercializacion','comisión por comercialización'],
+          ['otrosGastosFin','otros gastos financieros'],
           ['interesesBX','intereses bx'],['comisionAperturaBX','comisión apertura'],
           ['comisionAAD','comisión aad'],['comisionSPEI','comisión spei'],
           ['swapBX','swap bx'],['interesesNovaro','intereses novaro'],
@@ -3766,6 +4042,12 @@ function parseExcelData(file){
           const colB=String(row?.[1]||'').toLowerCase().trim();if(!colB)continue;
           for(const[key,pat]of FMAP){
             if(colB.includes(pat)&&!e1d[key].length){
+              const vals=E1.map(c=>getNum(row,c));
+              /* Skip section headers (rows with no data in scenario columns) */
+              if(vals.every(v=>v===0)){
+                const v2=E2.map(c=>getNum(row,c));
+                if(v2.every(v=>v===0)) continue;
+              }
               e1d[key]=E1.map(c=>getNum(row,c));
               e2d[key]=E2.map(c=>getNum(row,c));
               csd[key]=CS.map(c=>getNum(row,c));
@@ -3790,24 +4072,79 @@ function parseExcelData(file){
         computeTotals(e2d,E2.length);
         computeTotals(csd,CS.length);
 
-        /* Logrado — col indices: E1 Jul: R(17)=log, S(18)=porLograr; E2 Jul: AG(32)=log, AH(33)=por */
-        const logRows={ingresos:'ingreso',costoObra:'construcción',utilidadNeta:'utilidad neta'};
-        const lge1={},ple1={},lge2={},ple2={};
-        for(const row of raw){
-          const colB=String(row?.[1]||'').toLowerCase().trim();
-          for(const[k,pat]of Object.entries(logRows)){
-            if(colB.includes(pat)&&!lge1[k]){
-              lge1[k]=getNum(row,17);ple1[k]=getNum(row,18);
-              lge2[k]=getNum(row,32);ple2[k]=getNum(row,33);
+        /* Logrado — detect LOGRADO/POR LOGRAR pairs dynamically */
+        /* Month name normalization */
+        const mesNorm=s=>{
+          if(!s)return null;
+          const m=String(s).toLowerCase().trim();
+          if(m.startsWith('jun'))return'jun';if(m.startsWith('jul'))return'jul';
+          if(m.startsWith('ago'))return'ago';if(m.startsWith('sep'))return'sep';
+          if(m.startsWith('oct'))return'oct';if(m.startsWith('nov'))return'nov';
+          if(m.startsWith('dic')||m.startsWith('dec'))return'dic';
+          if(m.startsWith('ene')||m.startsWith('jan'))return'ene';
+          if(m.startsWith('feb'))return'feb';if(m.startsWith('mar'))return'mar';
+          if(m.startsWith('abr')||m.startsWith('apr'))return'abr';if(m.startsWith('may'))return'may';
+          return null;
+        };
+
+        /* Find LOGRADO/POR LOGRAR column pairs in a range, associating each with its month from row 2 */
+        function findLogradoPairs(fromCol,toCol){
+          const pairs=[];
+          for(let c=fromCol;c<=toCol;c++){
+            const h3=String(hdr[c]||'').toUpperCase().trim();
+            if(h3==='LOGRADO'){
+              const nextH3=String(hdr[c+1]||'').toUpperCase().trim();
+              if(nextH3.includes('POR LOGRAR')||nextH3==='POR LOGRAR'){
+                /* Get month from row 2 at this col or nearby */
+                let mes=mesNorm(row2[c])||mesNorm(row2[c+1]);
+                if(!mes){for(let bc=c-1;bc>=fromCol;bc--){mes=mesNorm(row2[bc]);if(mes)break;}}
+                if(mes) pairs.push({mes,logCol:c,plCol:c+1});
+              }
             }
           }
+          return pairs;
+        }
+
+        const e1LogPairs=findLogradoPairs(E1.length?E1[E1.length-1]+1:11, e2Start>=0?e2Start-1:(E2.length?E2[0]-1:35));
+        const e2LogPairs=findLogradoPairs(E2.length?E2[E2.length-1]+1:34, CS.length?CS[0]-1:46);
+
+        const logRows={ingresos:'ingreso',costoObra:'construcción',utilidadNeta:'utilidad neta'};
+        const logE1={},logE2={};
+
+        for(const{mes,logCol,plCol}of e1LogPairs){
+          const lg={},pl={};
+          for(const row of raw){
+            const colB=String(row?.[1]||'').toLowerCase().trim();
+            for(const[k,pat]of Object.entries(logRows)){
+              if(colB.includes(pat)&&lg[k]===undefined){
+                const lv=getNum(row,logCol),pv=getNum(row,plCol);
+                if(lv===0&&pv===0) continue; /* Skip section headers */
+                lg[k]=lv;pl[k]=pv;
+              }
+            }
+          }
+          if(Object.keys(lg).length) logE1[mes]={logrado:lg,porLograr:pl};
+        }
+        for(const{mes,logCol,plCol}of e2LogPairs){
+          const lg={},pl={};
+          for(const row of raw){
+            const colB=String(row?.[1]||'').toLowerCase().trim();
+            for(const[k,pat]of Object.entries(logRows)){
+              if(colB.includes(pat)&&lg[k]===undefined){
+                const lv=getNum(row,logCol),pv=getNum(row,plCol);
+                if(lv===0&&pv===0) continue; /* Skip section headers */
+                lg[k]=lv;pl[k]=pv;
+              }
+            }
+          }
+          if(Object.keys(lg).length) logE2[mes]={logrado:lg,porLograr:pl};
         }
 
         resolve({
           e1:{scenarios:e1Sc,data:e1d},
           e2:{scenarios:e2Sc,data:e2d},
           cons:{scenarios:csSc,data:csd},
-          logrado:{e1:{jun:null,jul:{logrado:lge1,porLograr:ple1}},e2:{jun:null,jul:{logrado:lge2,porLograr:ple2}}},
+          logrado:{e1:logE1,e2:logE2},
           equity:currentData.equity||null,
           scLabels:currentData.scLabels||null,
           vertientes:currentData.vertientes||null,
