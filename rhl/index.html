@@ -401,6 +401,20 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
   .abs-sub-grid{grid-template-columns:1fr;}
   .abs-torres-grid{grid-template-columns:1fr 1fr;}
 }
+
+/* ===== TOGGLE ADELANTO E2 ===== */
+.toggle-adelanto{display:flex;align-items:center;gap:10px;padding:8px 16px;margin:0 0 12px;
+  background:rgba(176,141,87,.06);border:1px solid var(--border);border-radius:10px;font-size:13px;
+  font-family:'DM Sans',sans-serif;color:var(--charcoal)}
+.toggle-adelanto label{display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600}
+.toggle-adelanto .sw{position:relative;width:40px;height:22px;background:var(--border);border-radius:11px;
+  transition:background .2s}
+.toggle-adelanto .sw::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;
+  background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.toggle-adelanto input{display:none}
+.toggle-adelanto input:checked+.sw{background:var(--brass)}
+.toggle-adelanto input:checked+.sw::after{transform:translateX(18px)}
+.toggle-adelanto .hint{font-size:11px;color:var(--muted);margin-left:auto}
 </style>
 </head>
 <body>
@@ -471,15 +485,15 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
   </div>
   <div class="valida" id="valida-cons"></div>
   <div class="tabs" id="pagenav">
-    <button class="tab active" data-tab="cons">Consolidado</button>
-    <button class="tab" data-tab="e1">Etapa 1</button>
+    <button class="tab active" data-tab="e1">Etapa 1</button>
     <button class="tab" data-tab="e2">Etapa 2</button>
+    <button class="tab" data-tab="cons">Consolidado</button>
     <button class="tab" data-tab="breakdown">Breakdown HC/SC</button>
     <button class="tab" data-tab="absorcion">Absorcion y Flujos</button>
   </div>
-  <div class="tab-content active" id="panel-cons"></div>
-  <div class="tab-content" id="panel-e1"></div>
+  <div class="tab-content active" id="panel-e1"></div>
   <div class="tab-content" id="panel-e2"></div>
+  <div class="tab-content" id="panel-cons"></div>
   <div class="tab-content" id="panel-breakdown"></div>
   <div class="tab-content" id="panel-absorcion"></div>
 </div>
@@ -498,7 +512,7 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
 const SUPA_URL = 'https://ifmnpzxkictbwgcznxex.supabase.co';
 const SUPA_KEY = 'sb_publishable_mP3VAPMRuFqJPz4pwE0G0Q_BfuSBF23';
 const DASHBOARD_ID = 'rhl';
-const EMBEDDED_DATA = {"palancas": {"tierra": "capital", "cpcMonto": 15000000.0, "cpcEtapa": "e2"}, "equityTotal": 243877381.7, "criterioCorte": "Ago 2026 condensado", "fechaCorte": "2026-08-26", "e1": {"scenarios": ["Base Mar 2025", "Nov 2025", "Ene 2026", "Feb 2026", "Mar 2026", "Jun 2026", "Jul 2026"], "data": {"ingresos": [1145000532.0, 1189586152.48558, 1191297928.60747, 1191378034.1399999, 1192482785.3019047, 1194996106.3899999, 1200136370.6399999], "costoObra": [614876152.1899999, 628319372.4800001, 675954385.1299999, 680000000.0, 680000000.0, 697005295.3076155, 710662081.53], "gestionLicencias": [70000000.0, 70000000.0, 70000000.0, 70720000.0, 48494815.86819335, 49738156.17819335, 49738156.17819335], "contratistaGeneral": [61487615.219, 62831937.24800002, 67595438.513, 68000000.0, 85996005.87120003, 88632850.25568339, 82436801.45747998], "indirectoCorp": [23199000.0, 23199000.0, 23199000.0, 25160000.0, 26625229.79, 26625229.79, 26625229.79], "gastosOpObra": [15332976.966566661, 15332976.966566661, 15332976.966566661, 26078118.405039996, 15332976.966566661, 15428959.931739075, 15428959.931739075], "proyectoEjecutivo": [7600000.0, 7600000.0, 7600000.0, 16000000.0, 7600000.0, 7600000.0, 7600000.0], "activosFijos": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "legal": [0.0, 0.0, 410610.1075921909, 410610.1075921909, 410610.1075921909, 410610.1075921909, 410610.1075921909], "sat": [0.0, 0.0, 5813565.542299353, 5589390.54229935, 5813565.542299353, 5813565.542299353, 5815198.542299353], "publicidad": [13282006.1712, 13799199.368832726, 13819055.971846651, 13819985.196023997, 13832800.309502093, 13861954.834123997, 13921581.899423998], "comisionComercializacion": [66410030.856, 68995996.84416363, 69095279.85923326, 71482682.04839998, 69164001.54751046, 69309774.17062, 69607909.49712], "interesesBX": [96000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0], "comisionAperturaBX": [6305000.000000001, 6305000.000000001, 6305000.000000001, 6500000.0, 6305000.000000001, 6305000.000000001, 6305000.000000001], "otrosGastosFin": [19777948.847179748, 19777948.847179748, 19777948.847179748, 19374290.355791748, 19777948.847179748, 19777948.847179748, 19777995.247179747], "equipamiento": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "adelantoEtapa2": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "aniosProy": [6, 6, 6, 6, 6, 6, 6], "tierraBase": [59560626.95, 59560626.95, 59560626.95, 59560626.95, 59560626.95, 59560626.95, 59560626.95], "recEquipamiento": [6531611.2924, 6531611.2924, 6531611.2924, 6531611.2924, 6531611.2924, 6531611.2924, 6531611.2924], "recNegociacion": [8000000.0, 8000000.0, 8000000.0, 8000000.0, 8000000.0, 8000000.0, 8000000.0], "recCargadores": [5000000.0, 5000000.0, 5000000.0, 5000000.0, 5000000.0, 5000000.0, 5000000.0], "recElevadores": [5102142.364800001, 5102142.364800001, 5102142.364800001, 5102142.364800001, 5102142.364800001, 5102142.364800001, 5102142.364800001]}}, "e2": {"scenarios": ["Base Mar 2025", "Nov 2025", "Ene 2026", "Mar 2026", "Jun 2026", "Jul 2026"], "data": {"ingresos": [1578028908.2, 1851418162.0, 1862165054.7506359, 1871609102.0, 1929385893.0, 1932146244.0], "costoObra": [661414279.2765551, 694362193.71, 694362193.71, 741402268.0, 741402268.0, 741402268.0], "gestionLicencias": [80000000.0, 118502310.57000001, 118502310.57000001, 118502310.57000001, 118502310.57000001, 118502310.57000001], "contratistaGeneral": [79044056.39608039, 82866014.47036, 82866014.47036, 92711207.01003999, 92711207.01003999, 92711207.01003999], "indirectoCorp": [23149499.77467943, 24302676.779850002, 24302676.779850002, 28242068.03, 26242068.03, 28242068.03], "gastosOpObra": [8598385.630595217, 16850744.402843226, 16850744.402843226, 17934956.43, 17934956.43, 17934956.43], "proyectoEjecutivo": [7000000.0, 10683741.38811724, 10683741.38811724, 10683741.38811724, 10683741.38811724, 10792832.837651815], "activosFijos": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "legal": [0.0, 0.0, 482273.1924078091, 482273.1924078091, 482273.1924078091, 482273.1924078091], "sat": [0.0, 0.0, 0.0, 6785074.45770065, 7623487.457700649, 7623487.457700649], "publicidad": [18305135.33512, 21476450.679199997, 21601114.635107376, 21710665.5832, 22380876.358799998, 22412896.4304], "comisionComercializacion": [91525676.67559999, 107382253.396, 108005573.17553687, 108553327.916, 111904381.79399998, 112064482.152], "interesesBX": [110000000.0, 110000000.0, 110000000.0, 110000000.0, 110000000.0, 110000000.0], "comisionAperturaBX": [0.0, 0.0, 9860081.204, 9860081.204, 9860081.204, 9860081.204], "otrosGastosFin": [0.0, 0.0, 7320878.8204, 7320878.8204, 7320878.8204, 7320878.8204], "equipamiento": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "adelantoEtapa2": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "aniosProy": [9, 9, 9, 9, 9, 9], "tierraBase": [69955642.03, 69955642.03, 69955642.03, 69955642.03, 69955642.03, 69955642.03], "recEquipamiento": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "recNegociacion": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "recCargadores": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "recElevadores": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}}, "cons": {"scenarios": ["Ago 2026 condensado"], "data": {"ingresos": [3132282614.64], "costoObra": [1460064349.53], "gestionLicencias": [168240466.74819335], "contratistaGeneral": [175148008.46751997], "indirectoCorp": [54867297.82], "gastosOpObra": [33363916.361739077], "proyectoEjecutivo": [18392832.837651815], "activosFijos": [0.0], "legal": [892883.3], "sat": [13438686.000000002], "publicidad": [36334478.32982399], "comisionComercializacion": [181672391.64911997], "interesesBX": [214000000.0], "comisionAperturaBX": [16165081.204], "otrosGastosFin": [27098874.067579746], "equipamiento": [0.0], "adelantoEtapa2": [0.0], "aniosProy": [9], "tierraBase": [129516268.98], "recEquipamiento": [6531611.2924], "recNegociacion": [8000000.0], "recCargadores": [5000000.0], "recElevadores": [5102142.364800001]}}, "logrado": {"e1": {"jul": {"logrado": {"ingresos": 1080957539.0, "costoObra": 662212244.39, "gestionLicencias": 49738156.17819335, "contratistaGeneral": 78932921.2164001, "indirectoCorp": 21924264.437155116, "gastosOpObra": 15428959.931739075, "proyectoEjecutivo": 7545754.365034394, "activosFijos": 5771353.5604, "legal": 410610.1075921909, "sat": 5815198.542299353, "publicidad": 12539107.452399999, "comisionComercializacion": 39106658.8276, "interesesBX": 99828523.24, "comisionAperturaBX": 6305000.000000001, "otrosGastosFin": 19777995.247179747, "equipamiento": 0.0, "utilidadNeta": 55620791.50400667}, "porLograr": {"ingresos": 119178831.63999987, "costoObra": 48449837.139999986, "gestionLicencias": 0.0, "contratistaGeneral": 3503880.241079882, "indirectoCorp": 4700965.352844883, "gastosOpObra": 0.0, "proyectoEjecutivo": 54245.634965606034, "activosFijos": 0.0, "legal": 0.0, "sat": 0.0, "publicidad": 1382474.447023999, "comisionComercializacion": 30501250.66951999, "interesesBX": 4171476.7600000054, "comisionAperturaBX": 0.0, "otrosGastosFin": 0.0, "equipamiento": 0.0, "utilidadNeta": 32186054.954965547}, "absorcion": {"torres": [{"torre": "A", "valorProyecto": 347199015.14, "cobrado": 271725658.95, "porCobrarTiempo": 52901714.69, "vencido": 384240.0, "porLograr": 25612746.5}, {"torre": "B", "valorProyecto": 502382668.63, "cobrado": 285226981.6, "porCobrarTiempo": 158141273.96, "vencido": 303167.36, "porLograr": 42202050.58}, {"torre": "C", "valorProyecto": 350519235.56, "cobrado": 83212597.52, "porCobrarTiempo": 231173157.57, "vencido": 1632731.4, "porLograr": 39483569.52}]}}}, "e2": {"jul": {"logrado": {"ingresos": 421726324.36, "costoObra": 165800036.2762569, "gestionLicencias": 56206372.90113465, "contratistaGeneral": 5824798.93, "indirectoCorp": 21864407.08200329, "gastosOpObra": 3798352.3320333324, "proyectoEjecutivo": 10792832.837651815, "activosFijos": 0.0, "legal": 482273.1924078091, "sat": 7623487.457700649, "publicidad": 19104220.250576, "comisionComercializacion": 11369947.172399998, "interesesBX": 18490876.42, "comisionAperturaBX": 9860081.204, "otrosGastosFin": 7320878.8204, "equipamiento": 0.0, "utilidadNeta": 83187759.48343557}, "porLograr": {"ingresos": 1510419919.6399999, "costoObra": 575602231.7237431, "gestionLicencias": 62295937.66886536, "contratistaGeneral": 86886408.08003998, "indirectoCorp": 6377660.9479967095, "gastosOpObra": 14136604.097966667, "proyectoEjecutivo": 0.0, "activosFijos": 0.0, "legal": 0.0, "sat": 0.0, "publicidad": 3308676.1798239984, "comisionComercializacion": 100694534.9796, "interesesBX": 91509123.58, "comisionAperturaBX": 0.0, "otrosGastosFin": 0.0, "equipamiento": 0.0, "utilidadNeta": 569608742.3819641}, "absorcion": {"torres": [{"torre": "D", "valorProyecto": 1142775918.82, "cobrado": 330523590.6, "porCobrarTiempo": 295498659.04, "vencido": 1879575.56, "porLograr": 812252328.22}, {"torre": "E", "valorProyecto": 788917094.15, "cobrado": 98351287.36, "porCobrarTiempo": 88332041.11, "vencido": 261655.0, "porLograr": 690565806.79}]}}}}};
+const EMBEDDED_DATA = {"palancas": {"tierra": "capital", "cpcMonto": 15000000.0, "cpcEtapa": "e2"}, "equityTotal": 40000000, "criterioCorte": "Sep 2026 condensado", "fechaCorte": "2026-09-29", "e1": {"scenarios": ["Base Mar 2025", "Nov 2025", "Ene 2026", "Feb 2026", "Mar 2026", "Jun 2026", "Jul 2026", "Sep 2026"], "data": {"ingresos": [1145000532.0, 1189586152.48558, 1191297928.60747, 1191378034.1399999, 1192482785.3019047, 1194996106.3899999, 1200136370.6399999, 1198491860.33], "costoObra": [614876152.1899999, 628319372.4800001, 675954385.1299999, 680000000.0, 680000000.0, 697005295.3076155, 710662081.53, 710622081.53], "gestionLicencias": [70000000.0, 70000000.0, 70000000.0, 70720000.0, 48494815.86819335, 49738156.17819335, 49738156.17819335, 50022259.57], "contratistaGeneral": [61487615.219, 62831937.24800002, 67595438.513, 68000000.0, 85996005.87120003, 88632850.25568339, 82436801.45747998, 82177732.04], "indirectoCorp": [23199000.0, 23199000.0, 23199000.0, 25160000.0, 26625229.79, 26625229.79, 26625229.79, 26625229.79], "gastosOpObra": [15332976.966566661, 15332976.966566661, 15332976.966566661, 26078118.405039996, 15332976.966566661, 15428959.931739075, 15428959.931739075, 15416163.59], "proyectoEjecutivo": [7600000.0, 7600000.0, 7600000.0, 16000000.0, 7600000.0, 7600000.0, 7600000.0, 7600000], "activosFijos": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5771353.56], "legal": [0.0, 0.0, 410610.1075921909, 410610.1075921909, 410610.1075921909, 410610.1075921909, 410610.1075921909, 410610.11], "sat": [0.0, 0.0, 5813565.542299353, 5589390.54229935, 5813565.542299353, 5813565.542299353, 5815198.542299353, 6654891.92], "publicidad": [13282006.1712, 13799199.368832726, 13819055.971846651, 13819985.196023997, 13832800.309502093, 13861954.834123997, 13921581.899423998, 21548883.65], "comisionComercializacion": [66410030.856, 68995996.84416363, 69095279.85923326, 71482682.04839998, 69164001.54751046, 69309774.17062, 69607909.49712, 61866149.83], "interesesBX": [96000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000.0, 104000000], "comisionAperturaBX": [6305000.000000001, 6305000.000000001, 6305000.000000001, 6500000.0, 6305000.000000001, 6305000.000000001, 6305000.000000001, 6305000], "otrosGastosFin": [19777948.847179748, 19777948.847179748, 19777948.847179748, 19374290.355791748, 19777948.847179748, 19777948.847179748, 19777995.247179747], "equipamiento": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0], "adelantoEtapa2": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0], "aniosProy": [6, 6, 6, 6, 6, 6, 6, 6], "tierraBase": [59560626.95, 59560626.95, 59560626.95, 59560626.95, 59560626.95, 59560626.95, 59560626.95, 40000000], "recEquipamiento": [6531611.2924, 6531611.2924, 6531611.2924, 6531611.2924, 6531611.2924, 6531611.2924, 6531611.2924, 6531611.2924], "recNegociacion": [8000000.0, 8000000.0, 8000000.0, 8000000.0, 8000000.0, 8000000.0, 8000000.0, 8000000], "recCargadores": [5000000.0, 5000000.0, 5000000.0, 5000000.0, 5000000.0, 5000000.0, 5000000.0, 5000000], "recElevadores": [5102142.364800001, 5102142.364800001, 5102142.364800001, 5102142.364800001, 5102142.364800001, 5102142.364800001, 5102142.364800001, 5102142.3648], "comisionAAD": [215983.16, 215983.16, 215983.16, 211575.05, 215983.16, 215983.16, 215983.67, 218017.22], "comisionSPEI": [589869.59, 589869.59, 589869.59, 577830.63, 589869.59, 589869.59, 589870.97, 595424.78], "swapBX": [3735900.82, 3735900.82, 3735900.82, 3659652.86, 3735900.82, 3735900.82, 3735909.58, 3771084.26], "interesesNovaro": [3775889.39, 3775889.39, 3775889.39, 3698825.29, 3775889.39, 3775889.39, 3775898.25, 3811449.43], "interesesAAD": [6314863.92, 6314863.92, 6314863.92, 6185980.56, 6314863.92, 6314863.92, 6314878.73, 6374335.16], "fcoNavarro": [5145441.98, 5145441.98, 5145441.98, 5040425.96, 5145441.98, 5145441.98, 5145454.05, 5193900]}}, "e2": {"scenarios": ["Base Mar 2025", "Nov 2025", "Ene 2026", "Mar 2026", "Jun 2026", "Jul 2026", "Sep 2026"], "data": {"ingresos": [1578028908.2, 1851418162.0, 1862165054.7506359, 1871609102.0, 1929385893.0, 1932146244.0, 1931651755.32], "costoObra": [661414279.2765551, 694362193.71, 694362193.71, 741402268.0, 741402268.0, 741402268.0, 741402268], "gestionLicencias": [80000000.0, 118502310.57000001, 118502310.57000001, 118502310.57000001, 118502310.57000001, 118502310.57000001, 118502310.57], "contratistaGeneral": [79044056.39608039, 82866014.47036, 82866014.47036, 92711207.01003999, 92711207.01003999, 92711207.01003999, 92711207.04], "indirectoCorp": [23149499.77467943, 24302676.779850002, 24302676.779850002, 28242068.03, 26242068.03, 28242068.03, 28242068.03], "gastosOpObra": [8598385.630595217, 16850744.402843226, 16850744.402843226, 17934956.43, 17934956.43, 17934956.43, 17934956.43], "proyectoEjecutivo": [7000000.0, 10683741.38811724, 10683741.38811724, 10683741.38811724, 10683741.38811724, 10792832.837651815, 10683741.39], "activosFijos": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0], "legal": [0.0, 0.0, 482273.1924078091, 482273.1924078091, 482273.1924078091, 482273.1924078091, 482273.19], "sat": [0.0, 0.0, 0.0, 6785074.45770065, 7623487.457700649, 7623487.457700649, 8350601.08], "publicidad": [18305135.33512, 21476450.679199997, 21601114.635107376, 21710665.5832, 22380876.358799998, 22412896.4304, 34731098.56], "comisionComercializacion": [91525676.67559999, 107382253.396, 108005573.17553687, 108553327.916, 111904381.79399998, 112064482.152, 99711863.61], "interesesBX": [110000000.0, 110000000.0, 110000000.0, 110000000.0, 110000000.0, 110000000.0, 110000000], "comisionAperturaBX": [0.0, 0.0, 9860081.204, 9860081.204, 9860081.204, 9860081.204, 9860081.204], "otrosGastosFin": [0.0, 0.0, 7320878.8204, 7320878.8204, 7320878.8204, 7320878.8204], "equipamiento": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0], "adelantoEtapa2": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0], "aniosProy": [9, 9, 9, 9, 9, 9, 9], "tierraBase": [69955642.03, 69955642.03, 69955642.03, 69955642.03, 69955642.03, 69955642.03, 0], "recEquipamiento": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0], "recNegociacion": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0], "recCargadores": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0], "recElevadores": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0], "comisionAAD": [0, 0, 0, 0, 0, 0, 0], "comisionSPEI": [0, 0, 0, 0, 0, 0, 0], "swapBX": [0, 0, 0, 0, 0, 0, 0], "interesesNovaro": [0, 0, 0, 0, 0, 0, 0], "interesesAAD": [0, 0, 1633904.07, 1633904.07, 1633904.07, 1633904.07, 1723838.22], "fcoNavarro": [0, 0, 5686974.75, 5686974.75, 5686974.75, 5686974.75, 6000000]}}, "cons": {"scenarios": ["Sep 2026 condensado"], "data": {"ingresos": [3130143615.6499996], "costoObra": [1452024349.53], "gestionLicencias": [168524570.14], "contratistaGeneral": [174888939.08], "indirectoCorp": [54867297.82], "gastosOpObra": [33351120.02], "proyectoEjecutivo": [18283741.39], "activosFijos": [5771353.56], "legal": [892883.3], "sat": [15005493.0], "publicidad": [56279982.21], "comisionComercializacion": [161578013.44], "interesesBX": [214000000], "comisionAperturaBX": [16165081.204], "otrosGastosFin": [27098874.067579746], "equipamiento": [0], "adelantoEtapa2": [0], "aniosProy": [9], "tierraBase": [40000000], "recEquipamiento": [6531611.2924], "recNegociacion": [8000000], "recCargadores": [5000000], "recElevadores": [5102142.3648], "comisionAAD": [218017.22], "comisionSPEI": [595424.78], "swapBX": [3771084.26], "interesesNovaro": [3811449.43], "interesesAAD": [8098173.38], "fcoNavarro": [11193900]}}, "logrado": {"e1": {"sep": {"logrado": {"ingresos": 1097864933.68, "costoObra": 680154207.73, "gestionLicencias": 50022259.57, "contratistaGeneral": 80856019.65, "indirectoCorp": 25361707.28, "gastosOpObra": 15375670.44, "proyectoEjecutivo": 7259846.37, "activosFijos": 5228154.36, "legal": 410610.11, "sat": 6682047.92, "publicidad": 19426073.55, "comisionComercializacion": 35533848.37, "interesesBX": 101570153, "comisionAperturaBX": 6305000, "comisionAAD": 218017.22, "comisionSPEI": 595424.78, "swapBX": 3771084.26, "interesesNovaro": 3811449.43, "interesesAAD": 6374335.16, "fcoNavarro": 5193900, "equipamiento": 0, "utilidadNeta": 3715124.49}, "porLograr": {"ingresos": 100626926.64999986, "costoObra": 30467873.799999952, "gestionLicencias": 0.0, "contratistaGeneral": 1321712.3900000006, "indirectoCorp": 1263522.509999998, "gastosOpObra": 40493.15000000037, "proyectoEjecutivo": 340153.6299999999, "activosFijos": 543199.1999999993, "legal": 0, "sat": 0, "publicidad": 2122810.0999999978, "comisionComercializacion": 26332301.46, "interesesBX": 2429847, "comisionAperturaBX": 0, "comisionAAD": 0, "comisionSPEI": 0, "swapBX": 0, "interesesNovaro": 0, "interesesAAD": 0, "fcoNavarro": 0, "equipamiento": 0, "utilidadNeta": 100626926.64999986}, "absorcion": {"torres": [{"torre": "A", "valorProyecto": 347199015.14, "cobrado": 271725658.95, "porCobrarTiempo": 52901714.69, "vencido": 384240.0, "porLograr": 25612746.5}, {"torre": "B", "valorProyecto": 502382668.63, "cobrado": 285226981.6, "porCobrarTiempo": 158141273.96, "vencido": 303167.36, "porLograr": 42202050.58}, {"torre": "C", "valorProyecto": 350519235.56, "cobrado": 83212597.52, "porCobrarTiempo": 231173157.57, "vencido": 1632731.4, "porLograr": 39483569.52}]}}}, "e2": {"sep": {"logrado": {"ingresos": 443602507.58, "costoObra": 205049547.05, "gestionLicencias": 59150725.82, "contratistaGeneral": 5788400, "indirectoCorp": 25556997.57, "gastosOpObra": 8524607.91, "proyectoEjecutivo": 10792832.84, "activosFijos": 0, "legal": 482273.19, "sat": 8993037.08, "publicidad": 14104600.27, "comisionComercializacion": 20263350.62, "interesesBX": 21075619.42, "comisionAperturaBX": 9860081.204, "comisionAAD": 0, "comisionSPEI": 0, "swapBX": 0, "interesesNovaro": 0, "interesesAAD": 1723838.22, "fcoNavarro": 5597040.6, "equipamiento": 0, "utilidadNeta": 46639555.79}, "porLograr": {"ingresos": 1488049247.74, "costoObra": 536352720.95, "gestionLicencias": 59351584.74999999, "contratistaGeneral": 86922807.04, "indirectoCorp": 2685070.460000001, "gastosOpObra": 9410348.52, "proyectoEjecutivo": -109091.44999999925, "activosFijos": 0, "legal": 0, "sat": 0, "publicidad": 20626498.290000003, "comisionComercializacion": 79448512.99, "interesesBX": 88924380.58, "comisionAperturaBX": 0, "comisionAAD": 0, "comisionSPEI": 0, "swapBX": 0, "interesesNovaro": 0, "interesesAAD": 0, "fcoNavarro": 402959.4000000004, "equipamiento": 0, "utilidadNeta": 1488049247.74}, "absorcion": {"torres": [{"torre": "D", "valorProyecto": 1142775918.82, "cobrado": 330523590.6, "porCobrarTiempo": 295498659.04, "vencido": 1879575.56, "porLograr": 812252328.22}, {"torre": "E", "valorProyecto": 788917094.15, "cobrado": 98351287.36, "porCobrarTiempo": 88332041.11, "vencido": 261655.0, "porLograr": 690565806.79}]}}}}};
 
 let supa = null;
 const supaOk = SUPA_URL && SUPA_URL.indexOf('<') === -1;
@@ -526,7 +540,7 @@ const fmtDate = iso => { try{ return new Date(iso).toLocaleDateString('es-MX',{d
 const EDITABLE_KEYS = new Set([
   'ingresos','costoObra','gestionLicencias','contratistaGeneral',
   'indirectoCorp','gastosOpObra','proyectoEjecutivo','activosFijos',
-  'legal','sat','interesesBX','comisionAperturaBX','otrosGastosFin',
+  'legal','sat','interesesBX','comisionAperturaBX','comisionAAD','comisionSPEI','swapBX','interesesNovaro','interesesAAD','fcoNavarro',
   'adelantoEtapa2','equipamiento','aniosProy',
   'recEquipamiento','recNegociacion','recCargadores','recElevadores',
 ]);
@@ -646,10 +660,16 @@ const ROWS_BASE = [
   {key:'_sep3',                       label:'Gastos Financieros',                type:'section', sc:'SC 3'},
   {key:'interesesBX',                 label:'Intereses BX+',                    fmt:fmtFull, type:'data',       isExpense:true},
   {key:'comisionAperturaBX',          label:'Comision Apertura BX+',            fmt:fmtFull, type:'data',       isExpense:true},
-  {key:'otrosGastosFin',              label:'Otros Gastos Financieros',         fmt:fmtFull, type:'expandable', isExpense:true},
+  {key:'comisionAAD',                 label:'Comision AAD',                     fmt:fmtFull, type:'data',       isExpense:true},
+  {key:'comisionSPEI',                label:'Comision SPEI',                    fmt:fmtFull, type:'data',       isExpense:true},
+  {key:'swapBX',                      label:'SWAP BX+',                         fmt:fmtFull, type:'data',       isExpense:true},
+  {key:'interesesNovaro',             label:'Intereses Novaro',                 fmt:fmtFull, type:'data',       isExpense:true},
+  {key:'interesesAAD',                label:'Intereses AAD',                    fmt:fmtFull, type:'data',       isExpense:true},
+  {key:'fcoNavarro',                  label:'Fco Navarro',                      fmt:fmtFull, type:'data',       isExpense:true},
   {key:'totalGastosFinancieros',      label:'Total Gastos Financieros',         fmt:fmtFull, type:'total',      isExpense:true},
   {key:'_sep4',                       label:'Costo de Tierra',                   type:'section'},
   {key:'costoTierra',                 label:'Costo de la tierra',               fmt:fmtFull, type:'data',       isExpense:true},
+  {key:'adelantoEtapa2',              label:'Adelanto Etapa 2',                 fmt:fmtFull, type:'data',       isExpense:true},
   {key:'totalCostoTierra',            label:'Total Costo tierra',               fmt:fmtFull, type:'total',      isExpense:true},
   {key:'_sep45',                      label:'Recuperaciones',                    type:'section'},
   {key:'recEquipamiento',             label:'Equipamiento',                      fmt:fmtFull, type:'data',  isExpense:false},
@@ -680,7 +700,7 @@ const DEVOL_DETAIL = [
 const CONS_INPUTS = ['ingresos','costoObra','gestionLicencias','contratistaGeneral',
   'indirectoCorp','gastosOpObra','proyectoEjecutivo','activosFijos','legal','sat',
   'publicidad','comisionComercializacion','interesesBX','comisionAperturaBX',
-  'otrosGastosFin','adelantoEtapa2','equipamiento','tierraBase',
+  'comisionAAD','comisionSPEI','swapBX','interesesNovaro','interesesAAD','fcoNavarro','adelantoEtapa2','equipamiento','tierraBase',
   'recEquipamiento','recNegociacion','recCargadores','recElevadores'];
 
 function derivarConsolidado(){
@@ -749,7 +769,7 @@ function recalculate(tabKey) {
                            - d.totalGastosComercializacion[i];
 
     d.totalGastosFinancieros = d.totalGastosFinancieros || [];
-    d.totalGastosFinancieros[i] = ['interesesBX','comisionAperturaBX','otrosGastosFin']
+    d.totalGastosFinancieros[i] = ['interesesBX','comisionAperturaBX','comisionAAD','comisionSPEI','swapBX','interesesNovaro','interesesAAD','fcoNavarro']
       .filter(viva).reduce((s,k)=>s+(d[k]?.[i]||0),0) + extraDe('financieros');
 
     // --- PALANCA 1: la tierra entra al P&L solo bajo el criterio de gasto operativo
@@ -790,6 +810,87 @@ function recalculate(tabKey) {
 
 
 
+
+
+/* ===== ADELANTO ETAPA 2 — TOGGLE ===== */
+const ADELANTO_E2_TOTAL = 32974725.67;
+const ADELANTO_E2_DETAIL = [
+  {cat:'Cisterna y PTAR', total:4555882.78, items:[
+    {name:'Estructura Cisterna y PTAR (Postensa)', monto:3516933.52},
+    {name:'Acero Estructura', monto:1055080.06},
+    {name:'Concreto Estructura', monto:1406773.41},
+    {name:'Equipamiento PTAR', monto:2456000}
+  ]},
+  {cat:'Salon de Usos Multiples', total:3634428.21, items:[
+    {name:'SUM Estructura', monto:2995118.67},
+    {name:'SUM Canceleria', monto:290357.11},
+    {name:'SUM Fachada', monto:690572.54},
+    {name:'SUM Const Ligera', monto:428923.99},
+    {name:'SUM Acabados', monto:563248.06},
+    {name:'SUM HVAC', monto:498626.09},
+    {name:'SUM Elevador', monto:911954.37},
+    {name:'SUM Instalaciones', monto:350000}
+  ]},
+  {cat:'Casa Club', total:20542748.39, items:[
+    {name:'CC Estructura', monto:19482034.51},
+    {name:'CC Canceleria', monto:3606874.53},
+    {name:'CC Equipos Swimquip', monto:2879867.45},
+    {name:'CC Albanileria', monto:2500000},
+    {name:'CC HVAC', monto:1500000},
+    {name:'CC Elevador', monto:899183.38},
+    {name:'CC Instalaciones', monto:3000000},
+    {name:'CC Acabados', monto:4165000}
+  ]},
+  {cat:'Parque Deportivo', total:4241666.30, items:[
+    {name:'Demoliciones', monto:650000},
+    {name:'Relleno de tezontle', monto:652041.57},
+    {name:'Landscape', monto:1304000},
+    {name:'Muro perimetral', monto:830000},
+    {name:'Cubo escalera y elevador', monto:1200000},
+    {name:'Elevador', monto:884749.83},
+    {name:'Contenedores', monto:1435773},
+    {name:'Muro de lamina', monto:546480.43},
+    {name:'Iluminacion', monto:350000}
+  ]}
+];
+let _adelantoE2Active = false;
+
+function toggleAdelanto(checked){
+  _adelantoE2Active = checked;
+  const d1 = currentData.e1?.data;
+  const d2 = currentData.e2?.data;
+  if(!d1 || !d2) return;
+  const n1 = currentData.e1.scenarios.length;
+  const n2 = currentData.e2.scenarios.length;
+  const last1 = n1 - 1;
+  const last2 = n2 - 1;
+  if(checked){
+    /* Move ADELANTO_E2_TOTAL from E2 HC to E1 adelantoEtapa2 */
+    d1.adelantoEtapa2 = d1.adelantoEtapa2 || [];
+    d1.adelantoEtapa2[last1] = -ADELANTO_E2_TOTAL; /* Negative = reduces E1 utilidad */
+    d2.adelantoEtapa2 = d2.adelantoEtapa2 || [];
+    d2.adelantoEtapa2[last2] = ADELANTO_E2_TOTAL;  /* Positive = added to E2 cost */
+  } else {
+    if(d1.adelantoEtapa2) d1.adelantoEtapa2[last1] = 0;
+    if(d2.adelantoEtapa2) d2.adelantoEtapa2[last2] = 0;
+  }
+  ['e1','e2','cons'].forEach(t => recalculate(t));
+  renderAll();
+  /* Update toggle state display */
+  document.querySelectorAll('.adelanto-status').forEach(el => {
+    el.textContent = checked ? 'ACTIVO — E1 absorbe $'+fmtCur(ADELANTO_E2_TOTAL)+' de E2' : 'Inactivo';
+    el.style.color = checked ? 'var(--brass-dark)' : 'var(--muted)';
+  });
+}
+
+function buildAdelantoToggleHtml(tabId){
+  if(tabId === 'cons') return ''; /* Solo visible en E1 y E2 */
+  return `<div class="toggle-adelanto">
+    <label><input type="checkbox" onchange="toggleAdelanto(this.checked)" ${_adelantoE2Active?'checked':''}><span class="sw"></span>Adelanto Etapa 2</label>
+    <span class="adelanto-status" style="font-size:12px;font-weight:600;color:${_adelantoE2Active?'var(--brass-dark)':'var(--muted)'}">${_adelantoE2Active?'ACTIVO':'Inactivo'}</span>
+    <span class="hint">Transfiere $${fmtCur(ADELANTO_E2_TOTAL)} de E2 a E1</span>
+  </div>`;
+}
 
 /* ===== BACKFILL DE ESQUEMA =====
    Una version guardada en Supabase puede haberse creado antes de que
@@ -1062,13 +1163,66 @@ const BREAKDOWN_DEFAULT = {
   sc: {pres: 409447679, ejer: 355635301},
   fecha: '2026-08-26',
   partidas: [
-    {key:'desfalcos',      name:'Desfalcos',                      monto:11000000,    detail:{source:'Hoja Extras — Resumen PPto ago26', items:[{name:'Desfalcos',monto:11000000}]}},
-    {key:'condiciones',    name:'Condiciones generales',           monto:4816244,     group:'aliah', detail:{source:'Hoja Extras', items:[{name:'Condiciones generales',monto:4816244}]}},
-    {key:'extras',         name:'Extras / Cambios de alcance',     monto:13327157,    group:'aliah', detail:{source:'Hoja Extras', items:[{name:'Extras / Cambios de alcance',monto:13327157}]}},
-    {key:'upgrades',       name:'Mejoras Upgrades',                monto:14501778,    detail:{source:'Hoja Extras', items:[{name:'Mejoras Upgrades',monto:14501778}]}},
-    {key:'mej_comercial',  name:'Mejoras comercial',               monto:9161835,     detail:{source:'Hoja Extras', items:[{name:'Mejoras comercial',monto:9161835}]}},
-    {key:'equipamiento',   name:'Equipamiento (por recuperar)',    monto:6531611,     detail:{source:'Hoja Extras', items:[{name:'Equipamiento (por recuperar)',monto:6531611}]}},
-    {key:'inflacion',      name:'Inflacion',                       monto:3472579,     detail:{source:'Derivado de analisis ago26', items:[{name:'Inflacion estimada',monto:3472579}]}}
+    {key:'desfalcos',      name:'Desfalcos',                      monto:11000000,    detail:{source:'Hoja Extras — Resumen PPto sep26', items:[{name:'Desfalcos',monto:11000000}]}},
+    {key:'condiciones',    name:'Condiciones generales',           monto:4816244,     group:'aliah', detail:{source:'Hoja Extras', items:[
+      {name:'Provisional de obra/Frente muerto/cable',monto:1005633},
+      {name:'Demolicion doble losa/unicel/contratrabes/pilas',monto:1779449},
+      {name:'Vigilancia ampliada 2 puertas',monto:1049095},
+      {name:'Topografia doble por distancias',monto:491724},
+      {name:'Consumo de agua en pipas',monto:490344}
+    ]}},
+    {key:'extras',         name:'Extras / Cambios de alcance',     monto:13327157,    group:'aliah', detail:{source:'Hoja Extras', items:[
+      {name:'Excavacion Celda adicional cisterna',monto:124538},
+      {name:'Estructura azotea Roof Gardens',monto:616009},
+      {name:'Trabe bordes losa fachada',monto:693645},
+      {name:'Celda adicional Cisterna',monto:445478},
+      {name:'Canalizaciones Inst. Especiales',monto:2788797},
+      {name:'A/C SUM y Extraccion Cocina',monto:498626},
+      {name:'Deteccion y alarma incendio',monto:1867348},
+      {name:'Sistema Red LAN',monto:801862},
+      {name:'Puerta doble elevadores Torre B',monto:338534},
+      {name:'Cristales plegables SUM',monto:290357},
+      {name:'Panel compuesto aluminio',monto:1101513},
+      {name:'Bastidores panel aluminio',monto:650000},
+      {name:'Placa murete fachada Purepechas',monto:250000},
+      {name:'Puertas cuartos lavado',monto:1560450},
+      {name:'Panel aluminio torres B y C',monto:1000000},
+      {name:'Bocina panel aluminio Torre A',monto:300000}
+    ]}},
+    {key:'upgrades',       name:'Mejoras Upgrades',                monto:14501778,    detail:{source:'Hoja Extras', items:[
+      {name:'Cambio alimentadores centro lavado electrico',monto:2935014},
+      {name:'Sistema EIFS fachada',monto:8380983},
+      {name:'Control temperatura cristal Evo 50',monto:583896},
+      {name:'Aislamiento acustico cristal laminado',monto:2601886}
+    ]}},
+    {key:'mej_comercial',  name:'Mejoras comercial',               monto:9161835,     detail:{source:'Hoja Extras', items:[
+      {name:'Cargadores: 2 transformadores 500KVA',monto:811974},
+      {name:'Cargadores: 1 Seccionador',monto:1203019},
+      {name:'Cargadores: 100 tarjetas medicion remota',monto:268250},
+      {name:'Cargadores: 200m charola cable',monto:500000},
+      {name:'Concentracion 100 medidores cargadores',monto:1141498},
+      {name:'Chapas acceso inteligentes',monto:386094},
+      {name:'Canceles regaderas bano',monto:2209633},
+      {name:'Cortinas en ventanas',monto:2641367}
+    ]}},
+    {key:'equipamiento',   name:'Equipamiento (por recuperar)',    monto:6531611,     detail:{source:'Hoja Extras', items:[
+      {name:'Sistema Proteccion Perimetral',monto:161656},
+      {name:'Sistema Audio Amenidades',monto:525872},
+      {name:'Contenedores Compra',monto:186296},
+      {name:'Contenedores Maniobra grua',monto:99437},
+      {name:'Contenedores Herreria',monto:550000},
+      {name:'Contenedores Transformacion',monto:600000},
+      {name:'Pantalla Cine',monto:950000},
+      {name:'Audio Cine',monto:280000},
+      {name:'Equipamiento GYM',monto:1800000},
+      {name:'Muebles Lobbies',monto:126000},
+      {name:'Cocina SUM',monto:110000},
+      {name:'Ludoteca',monto:125000},
+      {name:'Roof Tops comunes',monto:200000},
+      {name:'Maquina limpiadora pisos',monto:306530},
+      {name:'Fire Pits',monto:510820}
+    ]}},
+    {key:'inflacion',      name:'Inflacion',                       monto:3472579,     detail:{source:'Derivado de analisis sep26', items:[{name:'Inflacion estimada',monto:3472579}]}}
   ]
 };
 
@@ -2441,7 +2595,7 @@ function renderTab(id, tabData, logradoData) {
                         +(lg.gastosOpObra||0)+(lg.proyectoEjecutivo||0)+(lg.activosFijos||0)
                         +(lg.legal||0)+(lg.sat||0);
       const lgSC2      = (lg.publicidad||0)+(lg.comisionComercializacion||0);
-      const lgSC3      = (lg.interesesBX||0)+(lg.comisionAperturaBX||0)+(lg.otrosGastosFin||0);
+      const lgSC3      = ['interesesBX','comisionAperturaBX','comisionAAD','comisionSPEI','swapBX','interesesNovaro','interesesAAD','fcoNavarro'].reduce((s,k)=>s+(lg[k]||0),0);
       const lgSC       = lgSC1 + lgSC2 + lgSC3;
       const lgCostoTotal = lgHC + lgSC;
 
@@ -2627,6 +2781,9 @@ function renderTab(id, tabData, logradoData) {
     filtersHtml+='</div>';
   }
 
+  /* Toggle Adelanto E2 */
+  const adelantoHtml = buildAdelantoToggleHtml(id);
+
   /* Tabla */
   let tblHtml=`<div class="tbl-wrap"><table class="data" id="tbl-${id}"><thead><tr><th>Concepto</th>`;
   for(let i=0;i<scenarios.length;i++)
@@ -2639,7 +2796,7 @@ function renderTab(id, tabData, logradoData) {
   for(const row of ROWS){
     if(row.type==='section'){
       curSec=row.key;
-      const collapsed=(_secStates[id+'_'+row.key]!==true);
+      const collapsed=(_secStates[id+'_'+row.key]===false);
       const lbl = currentData.labels?.[row.key] || currentData.scLabels?.[row.key] || row.label;
       const scTag = row.sc ? `<span class="sc-tag">${row.sc}</span>` : '';
       /* Total de la seccion — siempre visible en el header */
@@ -2672,7 +2829,7 @@ function renderTab(id, tabData, logradoData) {
     if(row.standalone) curSec=null;
     const trCls=row.type==='total'?'row-total':row.type==='hero'?'row-hero':row.type==='pct'?'row-pct':row.type==='expandable'?'row-expandable':'';
     const secAttr=curSec?` data-sec="${curSec}"`:'';
-    const secHidden=(curSec && _secStates[id+'_'+curSec]!==true)?' style="display:none"':'';
+    const secHidden=(curSec && _secStates[id+'_'+curSec]===false)?' style="display:none"':'';
     let onclk='';
     if(row.type==='expandable') onclk=` onclick="toggleDetail(this,'${id}','${row.key}')"`;
 
@@ -2755,7 +2912,7 @@ function renderTab(id, tabData, logradoData) {
     vertientesHtml += '</div></div></div>';
   }
 
-  panel.innerHTML = bannerHtml + heroHtml + equityHtml + chartsHtml + logradoHtml + filtersHtml + tblHtml + vertientesHtml;
+  panel.innerHTML = bannerHtml + heroHtml + equityHtml + chartsHtml + logradoHtml + filtersHtml + adelantoHtml + tblHtml + vertientesHtml;
 
   restoreColStates(id);
   renderLineChart(cid1, scenarios, d.ingresos,     'Ingresos',      '--brass');
@@ -2807,10 +2964,10 @@ function renderComparador(tabId){
   /* Calcular SC totales para ambos escenarios */
   const sc1A = ['gestionLicencias','contratistaGeneral','indirectoCorp','gastosOpObra','proyectoEjecutivo','activosFijos','legal','sat'].reduce((s,k)=>s+(d[k]?.[si]||0),0);
   const sc2A = (d.publicidad?.[si]||0)+(d.comisionComercializacion?.[si]||0);
-  const sc3A = (d.interesesBX?.[si]||0)+(d.comisionAperturaBX?.[si]||0)+(d.otrosGastosFin?.[si]||0);
+  const sc3A = ['interesesBX','comisionAperturaBX','comisionAAD','comisionSPEI','swapBX','interesesNovaro','interesesAAD','fcoNavarro'].reduce((s,k)=>s+(d[k]?.[si]||0),0);
   const sc1B = ['gestionLicencias','contratistaGeneral','indirectoCorp','gastosOpObra','proyectoEjecutivo','activosFijos','legal','sat'].reduce((s,k)=>s+(d[k]?.[last]||0),0);
   const sc2B = (d.publicidad?.[last]||0)+(d.comisionComercializacion?.[last]||0);
-  const sc3B = (d.interesesBX?.[last]||0)+(d.comisionAperturaBX?.[last]||0)+(d.otrosGastosFin?.[last]||0);
+  const sc3B = ['interesesBX','comisionAperturaBX','comisionAAD','comisionSPEI','swapBX','interesesNovaro','interesesAAD','fcoNavarro'].reduce((s,k)=>s+(d[k]?.[last]||0),0);
 
   let html = `<div style="padding:16px 20px;background:rgba(176,141,87,.06);border:1px solid var(--border);border-radius:12px;margin-bottom:18px">
     <p style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brass-dark);margin:0 0 10px">Comparador: ${labelAntes} vs ${labelActual}</p>`;
@@ -2836,7 +2993,7 @@ function toggleVertientes(){
 /* ===== SECCIONES COLAPSABLES ===== */
 function toggleSection(tabId, secKey, headerRow){
   const stKey=tabId+'_'+secKey;
-  const isOpen=(_secStates[stKey]===true);
+  const isOpen=(_secStates[stKey]!==false);
   const rows=document.querySelectorAll(`#panel-${tabId} tr[data-sec="${secKey}"]`);
   const arrow=headerRow.querySelector('.sec-arrow');
   if(isOpen){
@@ -3592,7 +3749,9 @@ function parseExcelData(file){
           ['legal','legal'],['sat','sat (bh'],
           ['publicidad','publicidad'],['comisionComercializacion','comisión por comercialización'],
           ['interesesBX','intereses bx'],['comisionAperturaBX','comisión apertura'],
-          ['otrosGastosFin','otros gastos financieros'],
+          ['comisionAAD','comisión aad'],['comisionSPEI','comisión spei'],
+          ['swapBX','swap bx'],['interesesNovaro','intereses novaro'],
+          ['interesesAAD','intereses aad'],['fcoNavarro','fco navarro'],
           ['costoTierra','costo de la tierra'],['adelantoEtapa2','adelanto etapa 2'],
           ['equipamiento','equipamiento'],
           ['utilidadNeta','utilidad neta'],['margen','margen'],
