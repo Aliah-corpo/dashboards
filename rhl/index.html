@@ -4263,13 +4263,13 @@ function parseExcelData(file){
 
         /* Compute derived totals */
         function computeTotals(d,n){
-          d.utilidadBruta=Array.from({length:n},(_,i)=>(d.ingresos[i]||0)-(d.costoObra[i]||0));
+          d.utilidadBruta=Array.from({length:n},(_,i)=>(d.ingresos?.[i]||0)-(d.costoObra?.[i]||0));
           d.totalGastosOperativos=Array.from({length:n},(_,i)=>['gestionLicencias','contratistaGeneral','indirectoCorp','gastosOpObra','proyectoEjecutivo','activosFijos','legal','sat'].reduce((s,k)=>s+(d[k]?.[i]||0),0));
-          d.totalGastosComercializacion=Array.from({length:n},(_,i)=>(d.publicidad[i]||0)+(d.comisionComercializacion[i]||0));
-          d.utilidadOperativa=Array.from({length:n},(_,i)=>(d.utilidadBruta[i]||0)-(d.totalGastosOperativos[i]||0)-(d.totalGastosComercializacion[i]||0));
-          d.totalGastosFinancieros=Array.from({length:n},(_,i)=>(d.interesesBX[i]||0)+(d.comisionAperturaBX[i]||0)+(d.otrosGastosFin[i]||0));
-          d.totalCostoTierra=Array.from({length:n},(_,i)=>d.costoTierra[i]||0);
-          d.devolucionFixos=Array.from({length:n},(_,i)=>(d.devolucion[i]||0)-(d.utilidadNeta[i]||0)-(d.costoTierra[i]||0)-(d.contratistaGeneral[i]||0)-(d.ingresos[i]||0)*0.02);
+          d.totalGastosComercializacion=Array.from({length:n},(_,i)=>(d.publicidad?.[i]||0)+(d.comisionComercializacion?.[i]||0));
+          d.utilidadOperativa=Array.from({length:n},(_,i)=>(d.utilidadBruta?.[i]||0)-(d.totalGastosOperativos?.[i]||0)-(d.totalGastosComercializacion?.[i]||0));
+          d.totalGastosFinancieros=Array.from({length:n},(_,i)=>(d.interesesBX?.[i]||0)+(d.comisionAperturaBX?.[i]||0)+(d.otrosGastosFin?.[i]||0));
+          d.totalCostoTierra=Array.from({length:n},(_,i)=>d.costoTierra?.[i]||0);
+          d.devolucionFixos=Array.from({length:n},(_,i)=>(d.devolucion?.[i]||0)-(d.utilidadNeta?.[i]||0)-(d.costoTierra?.[i]||0)-(d.contratistaGeneral?.[i]||0)-(d.ingresos?.[i]||0)*0.02);
         }
         computeTotals(e1d,E1.length);
         computeTotals(e2d,E2.length);
