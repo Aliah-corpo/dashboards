@@ -690,7 +690,8 @@ const ROWS_BASE = [
   {key:'recElevadores',               label:'Elevadores de obra',                fmt:fmtFull, type:'data',  isExpense:false},
   {key:'porRecuperar',                label:'Por recuperar',                     fmt:fmtFull, type:'total', isExpense:false},
   {key:'_sep5',                       label:'Resultado',                         type:'section'},
-  {key:'utilidadNeta',                label:'UTILIDAD NETA',                    fmt:fmtFull, type:'hero',       isExpense:false},
+  {key:'utilidadNeta',                label:'Utilidad Neta',                    fmt:fmtFull, type:'total',      isExpense:false},
+  {key:'utilidadConRecuperables',    label:'UTILIDAD CON RECUPERABLES',        fmt:fmtFull, type:'hero',       isExpense:false},
   {key:'margen',                      label:'Margen',                            fmt:fmtPct,  type:'pct',        isExpense:false},
   {key:'inversionSocios',             label:'Inversion Socios (Tierra)',         fmt:fmtFull, type:'data',       isExpense:false, noDelta:true},
   {key:'devolucion',                  label:'Devolucion / Utilidad Total',       fmt:fmtFull, type:'expandable', isExpense:false},
@@ -799,6 +800,9 @@ function recalculate(tabKey) {
     d.utilidadNeta[i] = d.utilidadOperativa[i] - d.totalGastosFinancieros[i]
                       - d.totalCostoTierra[i] + (d.adelantoEtapa2?.[i]||0)
                       - d.porRecuperar[i] + (d.cpc?.[i]||0);
+
+    d.utilidadConRecuperables = d.utilidadConRecuperables || [];
+    d.utilidadConRecuperables[i] = d.utilidadNeta[i] + d.porRecuperar[i];
 
     d.margen = d.margen || [];
     d.margen[i] = d.ingresos[i] ? d.utilidadNeta[i] / d.ingresos[i] : 0;
@@ -1273,7 +1277,18 @@ function getAnclaBreakdown(){
 }
 
 function getBreakdownData(){
-  return currentData.breakdown || BREAKDOWN_DEFAULT;
+  const bd = currentData.breakdown || BREAKDOWN_DEFAULT;
+  /* Inyectar partidas sticky (desfalcos, inflacion) si no estan presentes y no fueron descartadas */
+  const STICKY_KEYS = ['desfalcos', 'inflacion'];
+  const dismissed = bd._stickyDismissed || [];
+  if(!bd.partidas) bd.partidas = [];
+  for(const sk of STICKY_KEYS){
+    if(!dismissed.includes(sk) && !bd.partidas.some(p => p.key === sk)){
+      const def = BREAKDOWN_DEFAULT.partidas.find(p => p.key === sk);
+      if(def) bd.partidas.push({...def, _sticky:true});
+    }
+  }
+  return bd;
 }
 
 function calcBreakdown(bd){
@@ -1375,7 +1390,12 @@ function buildBreakdownHtml(bd){
     const toggleBtn = hasDetail
       ? `<span style="cursor:pointer;color:var(--brass-dark);font-size:11px;font-weight:600" onclick="document.getElementById('${toggleId}').style.display=document.getElementById('${toggleId}').style.display==='none'?'block':'none'">&#9662; detalle</span>`
       : '';
-    html += `<tr><td>${nameHtml}${aliahTag}</td>
+    /* Boton quitar para partidas sticky (desfalcos, inflacion) — solo admin */
+    const stickyTag = p._sticky ? ' <span style="font-size:9px;color:var(--brass-dark);background:rgba(176,141,87,.1);padding:1px 5px;border-radius:3px;margin-left:4px">comodin</span>' : '';
+    const dismissBtn = (canEdit && (p._sticky || ['desfalcos','inflacion'].includes(p.key)))
+      ? ` <span style="cursor:pointer;color:var(--error);font-size:10px;font-weight:600;margin-left:6px" onclick="dismissStickyPartida('${p.key}')" title="Quitar partida del dashboard">&#10005; quitar</span>`
+      : '';
+    html += `<tr><td>${nameHtml}${aliahTag}${stickyTag}${dismissBtn}</td>
       <td>${montoHtml}</td>
       <td>${fmtCur(saldo)}</td>
       <td>${toggleBtn}</td></tr>`;
@@ -1398,10 +1418,43 @@ function buildBreakdownHtml(bd){
   /* Boton para agregar partida (solo admin) */
   if(isAdmin && !enHistorico){
     html += `<button class="add-partida" onclick="addBreakdownPartida()" style="margin-top:14px">+ Agregar concepto</button>`;
+    /* Botones para restaurar partidas sticky descartadas */
+    const dismissed = bd._stickyDismissed || [];
+    if(dismissed.length > 0){
+      html += `<div style="margin-top:8px;font-size:11px;color:var(--muted)">Partidas quitadas: `;
+      for(const dk of dismissed){
+        const defP = BREAKDOWN_DEFAULT.partidas.find(p => p.key === dk);
+        const label = defP ? defP.name : dk;
+        html += `<span style="cursor:pointer;color:var(--brass-dark);text-decoration:underline;margin-right:8px" onclick="restoreStickyPartida('${dk}')">${label}</span>`;
+      }
+      html += `</div>`;
+    }
   }
 
   html += `</div>`;
   return html;
+}
+
+async function dismissStickyPartida(key){
+  const bd = getBreakdownData();
+  if(!bd._stickyDismissed) bd._stickyDismissed = [];
+  if(!bd._stickyDismissed.includes(key)) bd._stickyDismissed.push(key);
+  /* Quitar la partida del array */
+  bd.partidas = (bd.partidas||[]).filter(p => p.key !== key);
+  currentData.breakdown = bd;
+  await guardarBreakdown('Quitar partida sticky: ' + key);
+  renderBreakdown();
+  renderAdminPanel();
+}
+
+async function restoreStickyPartida(key){
+  const bd = getBreakdownData();
+  bd._stickyDismissed = (bd._stickyDismissed||[]).filter(k => k !== key);
+  /* Se reinyectara en getBreakdownData() */
+  currentData.breakdown = bd;
+  await guardarBreakdown('Restaurar partida sticky: ' + key);
+  renderBreakdown();
+  renderAdminPanel();
 }
 
 function showBkdDetail(key){
@@ -2328,18 +2381,18 @@ function mergeAbsorcionConPrecios(absData, preciosData){
       u.m2Tot = precio.m2Tot || u.metros;
       u.tipoPrecio = precio.tipo;
       u.statusPrecio = precio.status;
-      /* Detectar inconsistencias */
-      if(u.valorTotal && precio.precioLista && Math.abs(u.valorTotal - precio.precioLista) > 1000){
-        const diff = u.valorTotal - precio.precioLista;
-        const pct = (diff / precio.precioLista * 100).toFixed(1);
-        u._alerta = `Valor MEGA (${fmtCur(u.valorTotal)}) vs Lista (${fmtCur(precio.precioLista)}): dif ${pct}%`;
-        alertas.push({clave:claveUpper, tipo:'precio_diff', msg:u._alerta, valorMega:u.valorTotal, valorLista:precio.precioLista, diff});
-        priceDiffs++;
+      /* Auto-merge de precios:
+         - DISPONIBLE: adoptar precio de Lista (mas actualizado)
+         - Vendido/Apartado/otro: conservar precio MEGA (refleja condiciones reales de venta) */
+      const statusUpper = (u.status || '').toUpperCase();
+      if(statusUpper.includes('DISPONIBLE') && precio.precioLista){
+        u.valorTotal = precio.precioLista;
+        u._mergeRule = 'lista';
+      } else {
+        u._mergeRule = 'mega';
       }
     } else {
       soloMega++;
-      u._alerta = 'No encontrada en Lista de Precios';
-      alertas.push({clave:claveUpper, tipo:'solo_mega', msg:'Unidad en MEGASEMBRADO pero no en Lista de Precios'});
     }
   }
 
@@ -2352,7 +2405,7 @@ function mergeAbsorcionConPrecios(absData, preciosData){
     }
   }
 
-  absData.mergeStats = {matched, soloMega, soloPrecios, priceDiffs, totalAlertas:alertas.length};
+  absData.mergeStats = {matched, soloMega, soloPrecios, priceDiffs:0, totalAlertas:alertas.length};
   absData.alertas = alertas;
   absData.precioLabel = preciosData.precioLabel;
   return absData;
@@ -2510,7 +2563,7 @@ function buildAbsorcionAdminHtml(){
   if(hasData){
     info = `<p style="font-size:11px;color:var(--green);margin:0 0 8px;font-weight:600">${currentData.absorcion.unidades.length} unidades cargadas &middot; Parseado ${currentData.absorcion.fechaParseo ? new Date(currentData.absorcion.fechaParseo).toLocaleDateString('es-MX') : 'N/D'}</p>`;
     if(stats){
-      info += `<p style="font-size:10px;color:var(--muted);margin:0 0 8px">Merge: ${stats.matched} cruzadas, ${stats.soloMega} solo MEGA, ${stats.soloPrecios} solo Precios, ${stats.priceDiffs} diferencias de precio</p>`;
+      info += `<p style="font-size:10px;color:var(--muted);margin:0 0 8px">Merge: ${stats.matched} cruzadas (Disponible=Lista, Vendido=MEGA), ${stats.soloMega} solo MEGA, ${stats.soloPrecios} solo Precios</p>`;
     }
   } else {
     info = `<p style="font-size:11px;color:var(--muted);margin:0 0 8px">Sin datos de absorcion.</p>`;
@@ -2584,7 +2637,7 @@ async function handleAbsorcionUpload(){
     if(progFill) progFill.style.width='100%';
     renderAbsorcion();
     const statsMsg = parsed.mergeStats
-      ? ` — Cruce: ${parsed.mergeStats.matched} OK, ${parsed.mergeStats.priceDiffs} difs de precio, ${parsed.mergeStats.soloMega} sin precio`
+      ? ` — Cruce: ${parsed.mergeStats.matched} OK (Disponible=Lista, Vendido=MEGA), ${parsed.mergeStats.soloMega} sin precio`
       : '';
     const fs = parsed.flujosStats;
     const flujosMsg = parsed.flujosGenerados
@@ -2763,9 +2816,9 @@ function renderTab(id, tabData, logradoData) {
     : '';
 
   /* Hero tiles */
-  const unDelta = getDelta(d.utilidadNeta?.[last], d.utilidadNeta?.[0], false);
+  const unDelta = getDelta(d.utilidadConRecuperables?.[last], d.utilidadConRecuperables?.[0], false);
   let heroHtml = '<div class="hero-row">';
-  heroHtml += `<div class="stat-tile"><p class="stat-label">Utilidad Neta — ${scenarios[last]}</p><p class="stat-value hero" id="hero-util-${id}">${fmtCur(d.utilidadNeta?.[last])}</p><p class="stat-delta ${unDelta.cls}">vs ${scenarios[0]}: ${unDelta.text}</p></div>`;
+  heroHtml += `<div class="stat-tile"><p class="stat-label">Utilidad con Recuperables — ${scenarios[last]}</p><p class="stat-value hero" id="hero-util-${id}">${fmtCur(d.utilidadConRecuperables?.[last])}</p><p class="stat-delta ${unDelta.cls}">vs ${scenarios[0]}: ${unDelta.text}</p></div>`;
   heroHtml += `<div class="stat-tile"><p class="stat-label">Margen</p><p class="stat-value" id="hero-margen-${id}">${fmtPct(d.margen?.[last])}</p><p class="stat-sub">${scenarios[last]}</p></div>`;
   heroHtml += `<div class="stat-tile"><p class="stat-label">TIR</p><p class="stat-value" id="hero-tir-${id}">${fmtPct(d.tir?.[last])}</p><p class="stat-sub">${scenarios[last]}</p></div>`;
   heroHtml += `<div class="stat-tile"><p class="stat-label">Multiplo</p><p class="stat-value" id="hero-mult-${id}">${fmtMult(d.multiplo?.[last])}</p><p class="stat-sub">${scenarios[last]}</p></div>`;
@@ -2780,7 +2833,7 @@ function renderTab(id, tabData, logradoData) {
 
   /* Charts */
   const cid1=id+'_ing', cid2=id+'_util';
-  const chartsHtml = `<div class="charts-row"><div class="chart-card"><p class="card-title">Ingresos por Ventas</p><div class="chart-wrap"><canvas id="${cid1}"></canvas></div></div><div class="chart-card"><p class="card-title">Utilidad Neta</p><div class="chart-wrap"><canvas id="${cid2}"></canvas></div></div></div>`;
+  const chartsHtml = `<div class="charts-row"><div class="chart-card"><p class="card-title">Ingresos por Ventas</p><div class="chart-wrap"><canvas id="${cid1}"></canvas></div></div><div class="chart-card"><p class="card-title">Utilidad con Recuperables</p><div class="chart-wrap"><canvas id="${cid2}"></canvas></div></div></div>`;
 
   /* Logrado */
   let logradoHtml = '';
@@ -2994,11 +3047,11 @@ function renderTab(id, tabData, logradoData) {
         utilAjustada = (d.ingresos?.[last]||0) - costoAjustado - (d.totalCostoTierra?.[last]||0);
       }
 
-      const utilActual = d.utilidadNeta?.[last]||0;
+      const utilActual = d.utilidadConRecuperables?.[last]||0;
 
       logradoHtml += `
       <div style="margin-top:20px;padding:16px 20px;background:rgba(72,77,49,.04);border:1px solid var(--border);border-radius:12px">
-        <p style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--olive);margin:0 0 12px">Termometro de Riesgo — Utilidad Neta ${fmtCur(utilActual)}</p>
+        <p style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--olive);margin:0 0 12px">Termometro de Riesgo — Utilidad con Recuperables ${fmtCur(utilActual)}</p>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
           <div style="padding:12px;background:var(--white);border-radius:8px;border:1px solid var(--border)">
             <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 6px">Convergencia</p>
@@ -3046,7 +3099,7 @@ function renderTab(id, tabData, logradoData) {
   const _hc    = d.sumaHC?.[_last] || 0;
   const _sc    = (d.totalGastosOperativos?.[_last]||0) + (d.totalGastosComercializacion?.[_last]||0) + (d.totalGastosFinancieros?.[_last]||0);
   const _uBrut = d.utilidadBruta?.[_last] || 0;
-  const _uNeta = d.utilidadNeta?.[_last] || 0;
+  const _uNeta = d.utilidadConRecuperables?.[_last] || 0;
   const _marg  = d.margen?.[_last] || 0;
   const sumBarHtml = `<div class="sum-bar">
     <div class="sum-bar-item"><span class="sum-bar-lbl">Ingresos</span><span class="sum-bar-val">${fmtCur(_ing)}</span></div>
@@ -3057,7 +3110,7 @@ function renderTab(id, tabData, logradoData) {
     <div class="sum-bar-sep"></div>
     <div class="sum-bar-item"><span class="sum-bar-lbl">Utilidad Bruta</span><span class="sum-bar-val">${fmtCur(_uBrut)}</span></div>
     <div class="sum-bar-sep"></div>
-    <div class="sum-bar-item highlight"><span class="sum-bar-lbl">Utilidad Neta</span><span class="sum-bar-val">${fmtCur(_uNeta)}</span></div>
+    <div class="sum-bar-item highlight"><span class="sum-bar-lbl">Utilidad con Recuperables</span><span class="sum-bar-val">${fmtCur(_uNeta)}</span></div>
     <div class="sum-bar-sep"></div>
     <div class="sum-bar-item"><span class="sum-bar-lbl">Margen</span><span class="sum-bar-val">${fmtPct(_marg)}</span></div>
   </div>`;
@@ -3082,12 +3135,12 @@ function renderTab(id, tabData, logradoData) {
         '_sepIng':'ingresos','_sepHC':'sumaHC',
         '_sep1':'totalGastosOperativos','_sep2':'totalGastosComercializacion',
         '_sep3':'totalGastosFinancieros','_sep4':'totalCostoTierra',
-        '_sep45':'porRecuperar','_sep5':'utilidadNeta'
+        '_sep45':'porRecuperar','_sep5':'utilidadConRecuperables'
       };
       const totalKey = SEC_TOTALS[row.key];
       let secHdrCells = '';
       if(totalKey && d[totalKey] && scenarios.length > 1){
-        const isExp = totalKey !== 'porRecuperar' && totalKey !== 'utilidadNeta' && totalKey !== 'ingresos';
+        const isExp = totalKey !== 'porRecuperar' && totalKey !== 'utilidadNeta' && totalKey !== 'utilidadConRecuperables' && totalKey !== 'ingresos';
         secHdrCells = `<td><span class="sec-arrow">${collapsed?'&#9658;':'&#9660;'}</span>${lbl}${scTag}</td>`;
         for(let si=0;si<scenarios.length;si++){
           const rawVal = d[totalKey][si];
@@ -3103,7 +3156,7 @@ function renderTab(id, tabData, logradoData) {
         if(totalKey && d[totalKey]){
           const rawVal = d[totalKey][last];
           if(rawVal !== undefined){
-            const isExp = totalKey !== 'porRecuperar' && totalKey !== 'utilidadNeta' && totalKey !== 'ingresos';
+            const isExp = totalKey !== 'porRecuperar' && totalKey !== 'utilidadNeta' && totalKey !== 'utilidadConRecuperables' && totalKey !== 'ingresos';
             const displayVal = (isExp && rawVal > 0) ? -rawVal : rawVal;
             totalHtml = `<span style="float:right;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:${displayVal<0?'var(--error)':'var(--charcoal)'};letter-spacing:0">${fmtFull(displayVal)}</span>`;
           }
@@ -3204,7 +3257,7 @@ function renderTab(id, tabData, logradoData) {
 
   restoreColStates(id);
   renderLineChart(cid1, scenarios, d.ingresos,     'Ingresos',      '--brass');
-  renderLineChart(cid2, scenarios, d.utilidadNeta, 'Utilidad Neta', '--olive');
+  renderLineChart(cid2, scenarios, d.utilidadConRecuperables, 'Utilidad con Recuperables', '--olive');
 }
 
 /* ===== COMPARADOR DE MESES ===== */
@@ -3265,7 +3318,7 @@ function renderComparador(tabId){
   html += compBarra('  Gastos Operativos (SC1)', sc1A, sc1B, 'var(--sage)');
   html += compBarra('  Gastos Comercializacion (SC2)', sc2A, sc2B, 'var(--sage)');
   html += compBarra('  Gastos Financieros (SC3)', sc3A, sc3B, 'var(--sage)');
-  html += compBarra('Utilidad Neta', d.utilidadNeta?.[si]||0, d.utilidadNeta?.[last]||0, 'var(--brass)');
+  html += compBarra('Utilidad con Recuperables', d.utilidadConRecuperables?.[si]||0, d.utilidadConRecuperables?.[last]||0, 'var(--brass)');
   html += '</div>';
   container.innerHTML = html;
 }
@@ -3432,7 +3485,7 @@ function updateTabDisplay(tabKey){
   const hMrg=document.getElementById(`hero-margen-${tabKey}`);
   const hTir=document.getElementById(`hero-tir-${tabKey}`);
   const hMlt=document.getElementById(`hero-mult-${tabKey}`);
-  if(hUtil) hUtil.textContent=fmtCur(d.utilidadNeta?.[last]);
+  if(hUtil) hUtil.textContent=fmtCur(d.utilidadConRecuperables?.[last]);
   if(hMrg) hMrg.textContent=fmtPct(d.margen?.[last]);
   if(hTir) hTir.textContent=fmtPct(d.tir?.[last]);
   if(hMlt) hMlt.textContent=fmtMult(d.multiplo?.[last]);
@@ -3466,7 +3519,7 @@ function updateTabDisplay(tabKey){
   /* Update chart */
   const chartIngresos=charts[tabKey+'_ing'], chartUtil=charts[tabKey+'_util'];
   if(chartIngresos){ chartIngresos.data.datasets[0].data=d.ingresos; chartIngresos.update(); }
-  if(chartUtil){ chartUtil.data.datasets[0].data=d.utilidadNeta; chartUtil.update(); }
+  if(chartUtil){ chartUtil.data.datasets[0].data=d.utilidadConRecuperables; chartUtil.update(); }
 }
 
 let _saveTimer = null;
@@ -4075,6 +4128,16 @@ async function handleBreakdownExcel(){
         bd.partidas.push(p);
         existByName.add(p.name.toLowerCase());
         added++;
+      }
+    }
+
+    /* Inyectar partidas sticky (desfalcos, inflacion) si no vinieron del Excel y no fueron descartadas */
+    const STICKY_KEYS_MERGE = ['desfalcos', 'inflacion'];
+    const dismissed = bd._stickyDismissed || [];
+    for(const sk of STICKY_KEYS_MERGE){
+      if(!dismissed.includes(sk) && !bd.partidas.some(p => p.key === sk)){
+        const def = BREAKDOWN_DEFAULT.partidas.find(p => p.key === sk);
+        if(def){ bd.partidas.push({...def, _sticky:true}); added++; }
       }
     }
 
