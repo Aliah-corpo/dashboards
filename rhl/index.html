@@ -3077,19 +3077,29 @@ function renderTab(id, tabData, logradoData) {
         '_sep45':'porRecuperar','_sep5':'utilidadNeta'
       };
       const totalKey = SEC_TOTALS[row.key];
-      let totalHtml = '';
-      if(totalKey && d[totalKey]){
-        const rawVal = d[totalKey][last];
-        if(rawVal !== undefined){
-          const isExp = totalKey !== 'porRecuperar' && totalKey !== 'utilidadNeta' && totalKey !== 'ingresos';
-          const displayVal = (isExp && rawVal > 0) ? -rawVal : rawVal;
-          totalHtml = `<span style="float:right;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:${displayVal<0?'var(--error)':'var(--charcoal)'};letter-spacing:0">${fmtFull(displayVal)}</span>`;
-        }
-      }
       let secHdrCells = '';
-      if(scenarios.length > 1 && totalHtml){
-        secHdrCells = `<td colspan="${scenarios.length}"><span class="sec-arrow">${collapsed?'&#9658;':'&#9660;'}</span>${lbl}${scTag}</td><td style="text-align:right;background:rgba(164,172,140,.12)">${totalHtml}</td>`;
+      if(totalKey && d[totalKey] && scenarios.length > 1){
+        const isExp = totalKey !== 'porRecuperar' && totalKey !== 'utilidadNeta' && totalKey !== 'ingresos';
+        secHdrCells = `<td><span class="sec-arrow">${collapsed?'&#9658;':'&#9660;'}</span>${lbl}${scTag}</td>`;
+        for(let si=0;si<scenarios.length;si++){
+          const rawVal = d[totalKey][si];
+          if(rawVal !== undefined){
+            const displayVal = (isExp && rawVal > 0) ? -rawVal : rawVal;
+            secHdrCells += `<td style="text-align:right;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:${displayVal<0?'var(--error)':'var(--charcoal)'};letter-spacing:0;background:rgba(164,172,140,.08)">${fmtFull(displayVal)}</td>`;
+          } else {
+            secHdrCells += `<td style="background:rgba(164,172,140,.08)"></td>`;
+          }
+        }
       } else {
+        let totalHtml = '';
+        if(totalKey && d[totalKey]){
+          const rawVal = d[totalKey][last];
+          if(rawVal !== undefined){
+            const isExp = totalKey !== 'porRecuperar' && totalKey !== 'utilidadNeta' && totalKey !== 'ingresos';
+            const displayVal = (isExp && rawVal > 0) ? -rawVal : rawVal;
+            totalHtml = `<span style="float:right;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:${displayVal<0?'var(--error)':'var(--charcoal)'};letter-spacing:0">${fmtFull(displayVal)}</span>`;
+          }
+        }
         secHdrCells = `<td colspan="${scenarios.length+1}"><span class="sec-arrow">${collapsed?'&#9658;':'&#9660;'}</span>${lbl}${scTag}${totalHtml}</td>`;
       }
       tblHtml+=`<tr class="section-hdr" data-sec-hdr="${row.key}" onclick="toggleSection('${id}','${row.key}',this)">${secHdrCells}</tr>`;
@@ -4091,7 +4101,7 @@ function renderAdminPanel(){
   setTimeout(()=>{ const c=document.getElementById('up-corte');
     if(c && !c.value) c.value=new Date().toISOString().slice(0,10); },0);
   const today=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
-  const rows=versionHistory.map(v=>`<div class="ver-item${v.is_active?' active-ver':''}"><div class="ver-item-info"><div class="ver-item-label">${v.version_label}</div><div class="ver-item-meta">${fmtDate(v.uploaded_at)} &middot; ${v.uploaded_by}</div></div>${v.is_active?'<span class="badge-active">Activa</span>':`<button class="btn btn-ghost btn-sm" onclick="handleActivate('${v.id}')">Activar</button>`}</div>`).join('');
+  const rows=versionHistory.map(v=>`<div class="ver-item${v.is_active?' active-ver':''}"><div class="ver-item-info"><div class="ver-item-label">${v.version_label}</div><div class="ver-item-meta">${fmtDate(v.uploaded_at)} &middot; ${v.uploaded_by}</div></div><div style="display:flex;gap:6px;align-items:center">${v.is_active?'<span class="badge-active">Activa</span>':`<button class="btn btn-ghost btn-sm" onclick="handleActivate('${v.id}')">Activar</button><button class="btn btn-sm" style="color:var(--error);border:1px solid var(--error);background:transparent;font-size:11px;padding:4px 10px" onclick="handleDeleteVersion('${v.id}','${v.version_label.replace(/'/g,"\\'")}')">Borrar</button>`}</div></div>`).join('');
   document.getElementById('admin-body').innerHTML=`
     <div class="user-bar"><span class="user-email">${userSession.user.email}</span><button class="btn btn-danger btn-sm" onclick="handleLogout()">Cerrar sesion</button></div>
     <div class="modal-section"><h3>Historial</h3><div class="ver-list">${rows||'<p style="font-size:12px;color:var(--muted);margin:0">Sin versiones aun.</p>'}</div></div>
@@ -4145,6 +4155,14 @@ async function handleSyncEmbedded(){
   btn.disabled=false;btn.textContent='Sincronizar datos embebidos';
 }
 
+async function handleDeleteVersion(verId,label){
+  if(!confirm('Eliminar la version "'+label+'"? Esta accion no se puede deshacer.')) return;
+  try{
+    const{error}=await supa.from('cierre_versiones').delete().eq('id',verId).eq('dashboard_id',DASHBOARD_ID);
+    if(error) throw new Error(error.message);
+    await loadVersionHistory();renderAdminPanel();
+  }catch(ex){alert('Error al borrar: '+(ex.message||String(ex)));}
+}
 async function handleActivate(verId){const res=await activateVersion(verId);if(res.error){alert('Error: '+res.error);return;}renderAdminPanel();}
 async function handleLogout(){await salir();}
 
@@ -4228,7 +4246,7 @@ function parseExcelData(file){
           ['publicidad','publicidad'],['comisionComercializacion','comisión por comercialización'],
           ['otrosGastosFin','otros gastos financieros'],
           ['interesesBX','intereses bx'],['comisionAperturaBX','comisión apertura'],
-          ['comisionAAD','comisión aad'],['comisionSPEI','comisión spei'],
+          ['comisionAAD','apertura aad'],['comisionSPEI','comisión spei'],
           ['swapBX','swap bx'],['interesesNovaro','intereses novaro'],
           ['interesesAAD','intereses aad'],['fcoNavarro','fco navarro'],
           ['costoTierra','costo de la tierra'],['adelantoEtapa2','adelanto etapa 2'],
