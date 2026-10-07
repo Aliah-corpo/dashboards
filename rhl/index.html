@@ -2486,7 +2486,7 @@ function generarFlujosLiquidacion(absData){
     Object.keys(u.flujosEscrit||{}).forEach(ml => allMonths.add(ml));
   });
 
-  const sorted = Array.from(allMonths).sort((a,b) => labelToNum(a) - labelToNum(b));
+  const sorted = Array.from(allMonths).sort((a,b) => labelToNum(a) - labelToNum(b)).filter(ml => labelToNum(ml) >= primerMesFuturo);
   absData.monthCols = sorted;
   absData.flujosGenerados = true;
   absData.corteLabel = corteLabel;
@@ -4166,7 +4166,11 @@ async function handleSyncEmbedded(){
 async function handleDeleteVersion(verId,label){
   if(!confirm('Eliminar la version "'+label+'"? Esta accion no se puede deshacer.')) return;
   try{
-    const{error}=await supa.from('cierre_versiones').delete().eq('id',verId).eq('dashboard_id',DASHBOARD_ID);
+    /* Soft-delete: RLS no permite DELETE, usamos UPDATE para mover fuera del dashboard */
+    const{error}=await supa.from('cierre_versiones').update({
+      dashboard_id: DASHBOARD_ID+'__deleted_'+Date.now(),
+      is_active: false
+    }).eq('id',verId).eq('dashboard_id',DASHBOARD_ID);
     if(error) throw new Error(error.message);
     await loadVersionHistory();renderAdminPanel();
   }catch(ex){alert('Error al borrar: '+(ex.message||String(ex)));}
