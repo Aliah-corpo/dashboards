@@ -177,6 +177,12 @@ tr.provision td{font-style:italic;color:var(--muted)!important;}
 .scen-chip:hover{border-color:var(--muted);}
 
 /* DATA TABLE */
+.sum-bar{display:flex;align-items:center;gap:0;padding:10px 16px;margin:0 0 14px;background:var(--charcoal);border-radius:var(--radius);overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.sum-bar-item{display:flex;flex-direction:column;align-items:center;padding:4px 14px;min-width:0;flex-shrink:0;}
+.sum-bar-item.highlight{background:rgba(176,141,87,.18);border-radius:8px;padding:6px 16px;}
+.sum-bar-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.55);white-space:nowrap;}
+.sum-bar-val{font-size:15px;font-weight:700;font-family:'Outfit',sans-serif;color:#fff;white-space:nowrap;}
+.sum-bar-sep{width:1px;height:28px;background:rgba(255,255,255,.12);flex-shrink:0;}
 .tbl-wrap{overflow-x:auto;margin:0;position:relative;-webkit-overflow-scrolling:touch;}
 table.data{min-width:100%;border-collapse:separate;border-spacing:0;font-size:13px;}
 table.data th{background:var(--charcoal);color:var(--white);padding:10px 14px;text-align:right;font-weight:600;position:sticky;top:0;white-space:nowrap;font-size:12px;}
@@ -1261,7 +1267,28 @@ function getBreakdownData(){
 function calcBreakdown(bd){
   const ancla = getAnclaBreakdown();
   const presIni = bd.presIni || BREAKDOWN_DEFAULT.presIni;
-  const partidas = bd.partidas || [];
+  let partidas = (bd.partidas || []).slice(); /* copia para no mutar el original */
+
+  /* ── Auto-inyectar Adelanto E2 como partida (usa defaults si no hay datos en breakdown) ── */
+  const adE2Raw = bd.adelantoE2 || (currentData.breakdown && currentData.breakdown.adelantoE2);
+  const adE2 = (adE2Raw && adE2Raw.total > 0) ? adE2Raw : {total: ADELANTO_E2_TOTAL_DEFAULT, detail: ADELANTO_E2_DETAIL_DEFAULT};
+  if(adE2 && adE2.total > 0){
+    /* Verificar si ya existe una partida "adelantoE2" para no duplicar */
+    const yaExiste = partidas.some(p => p.key === 'auto_adelanto_e2');
+    if(!yaExiste){
+      partidas.push({
+        key: 'auto_adelanto_e2',
+        name: 'Adelanto Etapa 2 (desglose)',
+        monto: adE2.total,
+        group: 'auto',
+        detail: {
+          source: 'Excel Adelanto E2 (auto)',
+          items: (adE2.detail || []).map(c => ({name: c.cat, monto: c.total}))
+        }
+      });
+    }
+  }
+
   const sumaPartidas = partidas.reduce((s,p) => s + (p.monto||0), 0);
   const brecha = ancla - presIni - sumaPartidas;
   return {ancla, presIni, partidas, sumaPartidas, brecha};
@@ -1341,13 +1368,15 @@ function buildBreakdownHtml(bd){
   let saldo = ancla - presIni;
   for(const p of partidas){
     saldo -= (p.monto||0);
-    const canEdit = isAdmin && !enHistorico;
-    /* Nombre editable si es admin */
+    const isAuto = p.group === 'auto';
+    const canEdit = isAdmin && !enHistorico && !isAuto;
+    /* Nombre editable si es admin (excepto auto-calculadas) */
     const nameHtml = canEdit
       ? `<span contenteditable="true" style="cursor:text;outline:none;border-bottom:1px dashed var(--border)" onblur="saveBkdName('${p.key}',this.textContent.trim())">${p.name}</span>`
       : p.name;
     const aliahTag = p.group==='aliah'?' <span style="font-size:10px;color:var(--muted)">(ALIAH)</span>':'';
-    /* Monto editable si es admin */
+    const autoTag = isAuto ? ' <span style="font-size:9px;color:var(--brass-dark);font-weight:600;text-transform:uppercase;letter-spacing:.04em">auto</span>' : '';
+    /* Monto editable si es admin (excepto auto-calculadas) */
     const montoHtml = canEdit
       ? `<span contenteditable="true" style="cursor:text;outline:none;color:var(--error);border-bottom:1px dashed var(--border)" data-bkd-monto="${p.key}" onblur="saveBkdMonto('${p.key}',this.textContent.trim())">-${fmtCur(p.monto||0)}</span>`
       : `-${fmtCur(p.monto||0)}`;
@@ -1357,7 +1386,7 @@ function buildBreakdownHtml(bd){
     const toggleBtn = hasDetail
       ? `<span style="cursor:pointer;color:var(--brass-dark);font-size:11px;font-weight:600" onclick="document.getElementById('${toggleId}').style.display=document.getElementById('${toggleId}').style.display==='none'?'block':'none'">&#9662; detalle</span>`
       : '';
-    html += `<tr><td>${nameHtml}${aliahTag}</td>
+    html += `<tr${isAuto?' style="background:rgba(176,141,87,.06)"':''}><td>${nameHtml}${aliahTag}${autoTag}</td>
       <td>${montoHtml}</td>
       <td>${fmtCur(saldo)}</td>
       <td>${toggleBtn}</td></tr>`;
@@ -3022,6 +3051,28 @@ function renderTab(id, tabData, logradoData) {
   /* Toggle Adelanto E2 */
   const adelantoHtml = buildAdelantoToggleHtml(id);
 
+  /* ── Barra de totales (siempre visible, no colapsable) ── */
+  const _last = scenarios.length - 1;
+  const _ing   = d.ingresos?.[_last] || 0;
+  const _hc    = d.sumaHC?.[_last] || 0;
+  const _sc    = (d.totalGastosOperativos?.[_last]||0) + (d.totalGastosComercializacion?.[_last]||0) + (d.totalGastosFinancieros?.[_last]||0);
+  const _uBrut = d.utilidadBruta?.[_last] || 0;
+  const _uNeta = d.utilidadNeta?.[_last] || 0;
+  const _marg  = d.margen?.[_last] || 0;
+  const sumBarHtml = `<div class="sum-bar">
+    <div class="sum-bar-item"><span class="sum-bar-lbl">Ingresos</span><span class="sum-bar-val">${fmtCur(_ing)}</span></div>
+    <div class="sum-bar-sep"></div>
+    <div class="sum-bar-item"><span class="sum-bar-lbl">Hard Cost</span><span class="sum-bar-val" style="color:var(--error)">-${fmtCur(_hc)}</span></div>
+    <div class="sum-bar-sep"></div>
+    <div class="sum-bar-item"><span class="sum-bar-lbl">Soft Cost</span><span class="sum-bar-val" style="color:var(--error)">-${fmtCur(_sc)}</span></div>
+    <div class="sum-bar-sep"></div>
+    <div class="sum-bar-item"><span class="sum-bar-lbl">Utilidad Bruta</span><span class="sum-bar-val">${fmtCur(_uBrut)}</span></div>
+    <div class="sum-bar-sep"></div>
+    <div class="sum-bar-item highlight"><span class="sum-bar-lbl">Utilidad Neta</span><span class="sum-bar-val">${fmtCur(_uNeta)}</span></div>
+    <div class="sum-bar-sep"></div>
+    <div class="sum-bar-item"><span class="sum-bar-lbl">Margen</span><span class="sum-bar-val">${fmtPct(_marg)}</span></div>
+  </div>`;
+
   /* Tabla */
   let tblHtml=`<div class="tbl-wrap"><table class="data" id="tbl-${id}"><thead><tr><th>Concepto</th>`;
   for(let i=0;i<scenarios.length;i++)
@@ -3150,7 +3201,7 @@ function renderTab(id, tabData, logradoData) {
     vertientesHtml += '</div></div></div>';
   }
 
-  panel.innerHTML = bannerHtml + heroHtml + equityHtml + chartsHtml + logradoHtml + filtersHtml + adelantoHtml + tblHtml + vertientesHtml;
+  panel.innerHTML = bannerHtml + heroHtml + equityHtml + chartsHtml + logradoHtml + filtersHtml + adelantoHtml + sumBarHtml + tblHtml + vertientesHtml;
 
   restoreColStates(id);
   renderLineChart(cid1, scenarios, d.ingresos,     'Ingresos',      '--brass');
