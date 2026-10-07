@@ -1268,27 +1268,6 @@ function calcBreakdown(bd){
   const ancla = getAnclaBreakdown();
   const presIni = bd.presIni || BREAKDOWN_DEFAULT.presIni;
   let partidas = (bd.partidas || []).slice(); /* copia para no mutar el original */
-
-  /* ── Auto-inyectar Adelanto E2 como partida (usa defaults si no hay datos en breakdown) ── */
-  const adE2Raw = bd.adelantoE2 || (currentData.breakdown && currentData.breakdown.adelantoE2);
-  const adE2 = (adE2Raw && adE2Raw.total > 0) ? adE2Raw : {total: ADELANTO_E2_TOTAL_DEFAULT, detail: ADELANTO_E2_DETAIL_DEFAULT};
-  if(adE2 && adE2.total > 0){
-    /* Verificar si ya existe una partida "adelantoE2" para no duplicar */
-    const yaExiste = partidas.some(p => p.key === 'auto_adelanto_e2');
-    if(!yaExiste){
-      partidas.push({
-        key: 'auto_adelanto_e2',
-        name: 'Adelanto Etapa 2 (desglose)',
-        monto: adE2.total,
-        group: 'auto',
-        detail: {
-          source: 'Excel Adelanto E2 (auto)',
-          items: (adE2.detail || []).map(c => ({name: c.cat, monto: c.total}))
-        }
-      });
-    }
-  }
-
   const sumaPartidas = partidas.reduce((s,p) => s + (p.monto||0), 0);
   const brecha = ancla - presIni - sumaPartidas;
   return {ancla, presIni, partidas, sumaPartidas, brecha};
@@ -1368,15 +1347,13 @@ function buildBreakdownHtml(bd){
   let saldo = ancla - presIni;
   for(const p of partidas){
     saldo -= (p.monto||0);
-    const isAuto = p.group === 'auto';
-    const canEdit = isAdmin && !enHistorico && !isAuto;
-    /* Nombre editable si es admin (excepto auto-calculadas) */
+    const canEdit = isAdmin && !enHistorico;
+    /* Nombre editable si es admin */
     const nameHtml = canEdit
       ? `<span contenteditable="true" style="cursor:text;outline:none;border-bottom:1px dashed var(--border)" onblur="saveBkdName('${p.key}',this.textContent.trim())">${p.name}</span>`
       : p.name;
     const aliahTag = p.group==='aliah'?' <span style="font-size:10px;color:var(--muted)">(ALIAH)</span>':'';
-    const autoTag = isAuto ? ' <span style="font-size:9px;color:var(--brass-dark);font-weight:600;text-transform:uppercase;letter-spacing:.04em">auto</span>' : '';
-    /* Monto editable si es admin (excepto auto-calculadas) */
+    /* Monto editable si es admin */
     const montoHtml = canEdit
       ? `<span contenteditable="true" style="cursor:text;outline:none;color:var(--error);border-bottom:1px dashed var(--border)" data-bkd-monto="${p.key}" onblur="saveBkdMonto('${p.key}',this.textContent.trim())">-${fmtCur(p.monto||0)}</span>`
       : `-${fmtCur(p.monto||0)}`;
@@ -1386,7 +1363,7 @@ function buildBreakdownHtml(bd){
     const toggleBtn = hasDetail
       ? `<span style="cursor:pointer;color:var(--brass-dark);font-size:11px;font-weight:600" onclick="document.getElementById('${toggleId}').style.display=document.getElementById('${toggleId}').style.display==='none'?'block':'none'">&#9662; detalle</span>`
       : '';
-    html += `<tr${isAuto?' style="background:rgba(176,141,87,.06)"':''}><td>${nameHtml}${aliahTag}${autoTag}</td>
+    html += `<tr><td>${nameHtml}${aliahTag}</td>
       <td>${montoHtml}</td>
       <td>${fmtCur(saldo)}</td>
       <td>${toggleBtn}</td></tr>`;
@@ -4251,11 +4228,11 @@ function parseExcelData(file){
           ['swapBX','swap bx'],['interesesNovaro','intereses novaro'],
           ['interesesAAD','intereses aad'],['fcoNavarro','fco navarro'],
           ['costoTierra','costo de la tierra'],['adelantoEtapa2','adelanto etapa 2'],
-          ['equipamiento','equipamiento'],
+          ['recEquipamiento','equipamiento'],
           ['utilidadNeta','utilidad neta'],['margen','margen'],
           ['inversionSocios','inversión inicial'],['devolucion','utilidad total'],
           ['multiplo','multiplo'],['tir','tir'],['aniosProy','años proy'],
-          ['negociacion','negociación'],['cargadores','cargadores'],['elevadoresObra','elevadores de obra'],
+          ['recNegociacion','negociación'],['recCargadores','cargadores'],['recElevadores','elevadores de obra'],
         ];
         const e1d={},e2d={},csd={};
         FMAP.forEach(([k])=>{e1d[k]=[];e2d[k]=[];csd[k]=[];});
