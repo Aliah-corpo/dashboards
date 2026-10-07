@@ -177,24 +177,29 @@ tr.provision td{font-style:italic;color:var(--muted)!important;}
 .scen-chip:hover{border-color:var(--muted);}
 
 /* DATA TABLE */
-.tbl-wrap{overflow-x:auto;margin:0;}
-table.data{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;}
+.tbl-wrap{overflow-x:auto;margin:0;position:relative;-webkit-overflow-scrolling:touch;}
+table.data{min-width:100%;border-collapse:separate;border-spacing:0;font-size:13px;}
 table.data th{background:var(--charcoal);color:var(--white);padding:10px 14px;text-align:right;font-weight:600;position:sticky;top:0;white-space:nowrap;font-size:12px;}
-table.data th:first-child{text-align:left;border-radius:10px 0 0 0;}
+table.data th:first-child{text-align:left;border-radius:10px 0 0 0;position:sticky;left:0;z-index:3;background:var(--charcoal);min-width:180px;border-right:2px solid rgba(255,255,255,.15);}
 table.data th:last-child{border-radius:0 10px 0 0;}
 table.data td{padding:8px 14px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;vertical-align:top;}
-table.data td:first-child{text-align:left;font-weight:500;}
-table.data tr.section-hdr td{background:rgba(164,172,140,.12);font-weight:700;color:var(--olive);font-size:11px;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;user-select:none;}
-table.data tr.section-hdr:hover td{background:rgba(164,172,140,.2);}
-table.data tr.row-total td{font-weight:700;background:rgba(164,172,140,.06);}
-table.data tr.row-hero td{font-weight:700;background:rgba(176,141,87,.08);color:var(--brass-dark);font-size:14px;}
+table.data td:first-child{text-align:left;font-weight:500;position:sticky;left:0;z-index:1;background:var(--white);min-width:180px;border-right:2px solid var(--border);}
+table.data tr.section-hdr td{background:#e8e9e0;font-weight:700;color:var(--olive);font-size:11px;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;user-select:none;}
+table.data tr.section-hdr:hover td{background:#dfe0d5;}
+table.data tr.row-total td{font-weight:700;background:#f3f4f0;}
+table.data tr.row-hero td{font-weight:700;background:#f5f0e7;color:var(--brass-dark);font-size:14px;}
 table.data tr.row-pct td{color:var(--muted);font-size:12px;}
+table.data tr.section-hdr td:first-child,
+table.data tr.row-total td:first-child,
+table.data tr.row-hero td:first-child,
+table.data tr.row-pct td:first-child{background:inherit;}
 table.data tr.row-expandable td:first-child{cursor:pointer;}
 table.data tr.row-expandable td:first-child::before{content:"▸ ";color:var(--brass);}
 table.data tr.row-expandable.open td:first-child::before{content:"▾ ";}
 table.data tr.detail-row{display:none;}
 table.data tr.detail-row.show{display:table-row;}
-table.data tr.detail-row td{padding-left:32px;font-size:12px;color:var(--muted);background:rgba(176,141,87,.04);}
+table.data tr.detail-row td{padding-left:32px;font-size:12px;color:var(--muted);background:#faf8f5;}
+table.data tr.detail-row td:first-child{background:#faf8f5;}
 .val-neg{color:var(--error);}
 .val-cell{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
 .delta-chip{font-size:10px;font-weight:700;letter-spacing:.02em;padding:1px 5px;border-radius:3px;line-height:1.4;}
@@ -814,8 +819,8 @@ function recalculate(tabKey) {
 
 
 /* ===== ADELANTO ETAPA 2 — TOGGLE ===== */
-const ADELANTO_E2_TOTAL = 32974725.67;
-const ADELANTO_E2_DETAIL = [
+const ADELANTO_E2_TOTAL_DEFAULT = 32974725.67;
+const ADELANTO_E2_DETAIL_DEFAULT = [
   {cat:'Cisterna y PTAR', total:4555882.78, items:[
     {name:'Estructura Cisterna y PTAR (Postensa)', monto:3516933.52},
     {name:'Acero Estructura', monto:1055080.06},
@@ -854,6 +859,19 @@ const ADELANTO_E2_DETAIL = [
     {name:'Iluminacion', monto:350000}
   ]}
 ];
+
+/* Getters dinamicos: si hay datos de Supabase, usarlos; si no, fallback a constantes */
+function getAdelantoE2Total(){
+  const bd = currentData.breakdown;
+  if(bd && bd.adelantoE2 && bd.adelantoE2.total) return bd.adelantoE2.total;
+  return ADELANTO_E2_TOTAL_DEFAULT;
+}
+function getAdelantoE2Detail(){
+  const bd = currentData.breakdown;
+  if(bd && bd.adelantoE2 && bd.adelantoE2.detail && bd.adelantoE2.detail.length) return bd.adelantoE2.detail;
+  return ADELANTO_E2_DETAIL_DEFAULT;
+}
+
 let _adelantoE2Active = false;
 
 function toggleAdelanto(checked){
@@ -865,12 +883,13 @@ function toggleAdelanto(checked){
   const n2 = currentData.e2.scenarios.length;
   const last1 = n1 - 1;
   const last2 = n2 - 1;
+  const adelTotal = getAdelantoE2Total();
   if(checked){
-    /* Move ADELANTO_E2_TOTAL from E2 HC to E1 adelantoEtapa2 */
+    /* Move adelanto from E2 HC to E1 adelantoEtapa2 */
     d1.adelantoEtapa2 = d1.adelantoEtapa2 || [];
-    d1.adelantoEtapa2[last1] = -ADELANTO_E2_TOTAL; /* Negative = reduces E1 utilidad */
+    d1.adelantoEtapa2[last1] = -adelTotal; /* Negative = reduces E1 utilidad */
     d2.adelantoEtapa2 = d2.adelantoEtapa2 || [];
-    d2.adelantoEtapa2[last2] = ADELANTO_E2_TOTAL;  /* Positive = added to E2 cost */
+    d2.adelantoEtapa2[last2] = adelTotal;  /* Positive = added to E2 cost */
   } else {
     if(d1.adelantoEtapa2) d1.adelantoEtapa2[last1] = 0;
     if(d2.adelantoEtapa2) d2.adelantoEtapa2[last2] = 0;
@@ -879,17 +898,18 @@ function toggleAdelanto(checked){
   renderAll();
   /* Update toggle state display */
   document.querySelectorAll('.adelanto-status').forEach(el => {
-    el.textContent = checked ? 'ACTIVO — E1 absorbe $'+fmtCur(ADELANTO_E2_TOTAL)+' de E2' : 'Inactivo';
+    el.textContent = checked ? 'ACTIVO — E1 absorbe $'+fmtCur(adelTotal)+' de E2' : 'Inactivo';
     el.style.color = checked ? 'var(--brass-dark)' : 'var(--muted)';
   });
 }
 
 function buildAdelantoToggleHtml(tabId){
   if(tabId === 'cons') return ''; /* Solo visible en E1 y E2 */
+  const adelTotal = getAdelantoE2Total();
   return `<div class="toggle-adelanto">
     <label><input type="checkbox" onchange="toggleAdelanto(this.checked)" ${_adelantoE2Active?'checked':''}><span class="sw"></span>Adelanto Etapa 2</label>
     <span class="adelanto-status" style="font-size:12px;font-weight:600;color:${_adelantoE2Active?'var(--brass-dark)':'var(--muted)'}">${_adelantoE2Active?'ACTIVO':'Inactivo'}</span>
-    <span class="hint">Transfiere $${fmtCur(ADELANTO_E2_TOTAL)} de E2 a E1</span>
+    <span class="hint">Transfiere $${fmtCur(adelTotal)} de E2 a E1</span>
   </div>`;
 }
 
@@ -2190,7 +2210,7 @@ function parseListaPrecios(file){
         const XL = window.XLSX; if(!XL){ reject('SheetJS no disponible'); return; }
         /* Primer paso: leer solo nombres de hojas para identificar la correcta */
         const wbNames = XL.read(e.target.result, {type:'array', bookSheets:true});
-        const allNames = Object.keys(wbNames.Sheets||wbNames);
+        const allNames = wbNames.SheetNames || Object.keys(wbNames.Sheets||{});
         let wsName = allNames.find(n=>n.toUpperCase().includes('CONTROL') || n.toUpperCase().includes('PRECIO'));
         if(!wsName) wsName = allNames[0]||'Sheet1';
         /* Cargar solo la hoja necesaria */
@@ -3654,7 +3674,7 @@ function importBreakdownJSON(){
   inp.click();
 }
 
-/* ===== 3 PARSERS DE EXCEL PARA BREAKDOWN ===== */
+/* ===== 4 PARSERS DE EXCEL PARA BREAKDOWN ===== */
 
 /* Parser 1: Hoja _DASHBOARD — formato estandar con columnas fijas */
 function parseBkdDashboardSheet(wb){
@@ -3822,7 +3842,139 @@ function parseBkdResumenE1(wb){
   return result.partidas.length || result.hc.pres ? result : null;
 }
 
-/* Handler unificado: intenta los 3 parsers en orden de prioridad */
+/* Parser 4: "Adelanto E2 y Extras" — hojas "Extras" y "Adelanto E2" */
+function parseBkdAdelantoExtras(wb){
+  const XLSX = window.XLSX;
+  const names = wb.SheetNames || [];
+  const extSheet = names.find(s => s.toLowerCase().trim() === 'extras');
+  const adelSheet = names.find(s => s.toLowerCase().includes('adelanto'));
+  if(!extSheet && !adelSheet) return null;
+
+  const result = {partidas:[], presIni: BREAKDOWN_DEFAULT.presIni,
+    hc:{pres:0,ejer:0}, sc:{pres:0,ejer:0}, fecha:'', adelantoE2:null};
+
+  /* ---- EXTRAS: leer categorias con sus items de detalle ---- */
+  if(extSheet){
+    const ws = wb.Sheets[extSheet];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
+
+    /* Mapeo de nombre de categoria en Excel → key existente en breakdown */
+    const CAT_MAP = [
+      {pat:'condicion',    key:'condiciones',    name:'Condiciones generales',        group:'aliah'},
+      {pat:'extras',       key:'extras',         name:'Extras / Cambios de alcance',  group:'aliah'},
+      {pat:'cambio',       key:'extras',         name:'Extras / Cambios de alcance',  group:'aliah'},
+      {pat:'up.?grade',    key:'upgrades',       name:'Mejoras Upgrades'},
+      {pat:'mejora com',   key:'mej_comercial',  name:'Mejoras comercial'},
+      {pat:'equipamiento', key:'equipamiento',   name:'Equipamiento (por recuperar)'}
+    ];
+
+    let curCat = null;
+    let curItems = [];
+    let curTotal = 0;
+
+    function flushCat(){
+      if(!curCat) return;
+      result.partidas.push({
+        key: curCat.key, name: curCat.name, monto: Math.round(curTotal),
+        group: curCat.group,
+        detail:{source:'Hoja Extras — Adelanto E2 y Extras', items: curItems.slice()}
+      });
+      curItems = [];
+      curTotal = 0;
+      curCat = null;
+    }
+
+    for(let i=0; i<rows.length; i++){
+      const r = rows[i]; if(!r) continue;
+      const cellB = String(r[1]||'').trim();
+      if(!cellB) continue;
+      const cellBlo = cellB.toLowerCase().replace(/\n/g,' ');
+      const cellC = parseFloat(String(r[2]||0).toString().replace(/[,$\s]/g,''))||0;
+
+      /* Detectar header de categoria: tiene total en C pero nada en D ni E,
+         y el texto coincide con un patron conocido.
+         Los items siempre tienen valor en D (pagado) o E (pendiente). */
+      const cellD = parseFloat(String(r[3]||0).toString().replace(/[,$\s]/g,''))||0;
+      const cellE = parseFloat(String(r[4]||0).toString().replace(/[,$\s]/g,''))||0;
+      const matched = CAT_MAP.find(c => new RegExp(c.pat,'i').test(cellBlo));
+      if(matched && cellC > 0 && !cellD && !cellE){
+        /* Es un header de categoria (tiene total en C pero no detalle en D/E) */
+        flushCat();
+        curCat = matched;
+        curTotal = cellC;
+        continue;
+      }
+
+      /* Item bajo la categoria actual */
+      if(curCat && cellC > 0){
+        curItems.push({name: cellB, monto: Math.round(cellC)});
+      }
+    }
+    flushCat();
+  }
+
+  /* ---- ADELANTO E2: leer categorias con items ---- */
+  if(adelSheet){
+    const ws = wb.Sheets[adelSheet];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
+
+    const cats = [];
+    let curCat = null;
+    let curItems = [];
+    let totalE2 = 0;
+
+    function flushAdel(){
+      if(!curCat) return;
+      cats.push({cat: curCat.name, total: curCat.e2, items: curItems.slice()});
+      curItems = [];
+      curCat = null;
+    }
+
+    for(let i=2; i<rows.length; i++){
+      const r = rows[i]; if(!r) continue;
+      const cellB = String(r[1]||'').trim();
+      if(!cellB || cellB.toUpperCase()==='TOTAL') continue;
+      if(cellB.toUpperCase().startsWith('ADELANTOS')) continue;
+
+      const total = parseFloat(String(r[2]||0).toString().replace(/[,$\s]/g,''))||0;
+      const e1 = parseFloat(String(r[3]||0).toString().replace(/[,$\s]/g,''))||0;
+      const e2 = parseFloat(String(r[4]||0).toString().replace(/[,$\s]/g,''))||0;
+      const contractor = r[5] ? String(r[5]).trim() : '';
+
+      /* Detectar header de categoria: texto en MAYUSCULAS, sin contractor,
+         y sin prefijo de item (CC, SUM). Ej: CISTERNA Y PTAR, CASA CLUB */
+      const letters = cellB.replace(/[^a-zA-ZÀ-ÿ]/g,'');
+      const uppers = cellB.replace(/[^A-ZÀ-ÖÙ-Ý]/g,'');
+      const isAllCaps = letters.length > 2 && uppers.length >= letters.length * 0.7;
+      const isItemPrefix = /^(CC|SUM)\s/i.test(cellB);
+
+      if(total > 0 && !contractor && e2 > 0 && isAllCaps && !isItemPrefix){
+        /* Header de categoria */
+        flushAdel();
+        curCat = {name: cellB, total, e1, e2};
+        continue;
+      }
+
+      if(total > 0 && curCat){
+        /* Item bajo categoria */
+        curItems.push({name: cellB, monto: Math.round(e2 || total)});
+      }
+    }
+    flushAdel();
+
+    /* Calcular total E2 */
+    totalE2 = cats.reduce((s,c) => s + c.total, 0);
+
+    result.adelantoE2 = {
+      total: Math.round(totalE2 * 100) / 100,
+      detail: cats
+    };
+  }
+
+  return (result.partidas.length || result.adelantoE2) ? result : null;
+}
+
+/* Handler unificado: intenta los 4 parsers en orden de prioridad */
 async function handleBreakdownExcel(){
   const fileInp = document.getElementById('bkd-excel-file');
   if(!fileInp || !fileInp.files[0]){
@@ -3838,12 +3990,13 @@ async function handleBreakdownExcel(){
     const wb = XLIBX.read(buf, {type:'array'});
 
     /* Intentar parsers en orden */
-    let parsed = parseBkdDashboardSheet(wb);
-    let src = '_DASHBOARD';
+    let parsed = parseBkdAdelantoExtras(wb);
+    let src = 'Adelanto E2 + Extras';
+    if(!parsed){ parsed = parseBkdDashboardSheet(wb); src = '_DASHBOARD'; }
     if(!parsed){ parsed = parseBkdResumenYExtras(wb); src = 'Resumen Ejecutivo + Extras'; }
     if(!parsed){ parsed = parseBkdResumenE1(wb); src = 'Resumen E1 legacy'; }
     if(!parsed){
-      setBkdStatus('No se encontro ninguna hoja reconocida (_DASHBOARD, Resumen Ejecutivo, Extras, Resumen E1).','err');
+      setBkdStatus('No se encontro ninguna hoja reconocida (Extras, Adelanto E2, _DASHBOARD, Resumen Ejecutivo, Resumen E1).','err');
       return;
     }
 
@@ -3854,23 +4007,41 @@ async function handleBreakdownExcel(){
     if(parsed.fecha) bd.fecha = parsed.fecha;
     if(parsed.presIni !== BREAKDOWN_DEFAULT.presIni) bd.presIni = parsed.presIni;
 
-    /* Agregar partidas nuevas (no duplicar por nombre) */
-    const existNames = new Set((bd.partidas||[]).map(p=>p.name.toLowerCase()));
-    let added = 0;
+    /* Merge partidas: reemplazar por key si existe, agregar si es nueva */
+    const existByKey = {};
+    const existByName = new Set();
+    (bd.partidas||[]).forEach((p,i) => {
+      if(p.key) existByKey[p.key] = i;
+      existByName.add(p.name.toLowerCase());
+    });
+    let added = 0, replaced = 0;
     for(const p of parsed.partidas){
-      if(!existNames.has(p.name.toLowerCase())){
+      if(p.key && existByKey[p.key] !== undefined){
+        /* Reemplazar partida existente con misma key (actualiza monto y detail) */
+        bd.partidas[existByKey[p.key]] = p;
+        replaced++;
+      } else if(!existByName.has(p.name.toLowerCase())){
         if(!bd.partidas) bd.partidas = [];
         bd.partidas.push(p);
-        existNames.add(p.name.toLowerCase());
+        existByName.add(p.name.toLowerCase());
         added++;
       }
+    }
+
+    /* Adelanto E2: guardar en breakdown si el parser lo trajo */
+    if(parsed.adelantoE2){
+      bd.adelantoE2 = parsed.adelantoE2;
     }
 
     currentData.breakdown = bd;
     await guardarBreakdown('Import Excel (' + src + '): ' + file.name);
     renderBreakdown();
     renderAdminPanel();
-    setBkdStatus(`Listo — parser: ${src}. ${parsed.partidas.length} partidas leidas, ${added} nuevas agregadas.`,'ok');
+    const parts = [`parser: ${src}`, `${parsed.partidas.length} partidas leidas`];
+    if(replaced) parts.push(`${replaced} actualizadas`);
+    if(added) parts.push(`${added} nuevas`);
+    if(parsed.adelantoE2) parts.push(`Adelanto E2: $${fmtCur(parsed.adelantoE2.total)}`);
+    setBkdStatus(`Listo — ${parts.join(', ')}.`,'ok');
   } catch(e){
     setBkdStatus('Error: ' + (e.message||String(e)),'err');
   }
