@@ -736,6 +736,9 @@ function recalculate(tabKey) {
   const P = currentData.palancas || {tierra:'capital', cpcMonto:15000000, cpcEtapa:'e2'};
   const EQ = currentData.equityTotal || 0;
 
+  /* Claves que pueden no existir si el Excel no las trae — inicializar como [] */
+  d.equipamiento = d.equipamiento || [];
+
   for (let i = 0; i < n; i++) {
     // --- PALANCA CPC: contratos por cerrar — aditiva al HC del ultimo mes solamente.
     //     Si cpcMonto es 0, no hay efecto. En consolidado siempre entra.
@@ -791,7 +794,7 @@ function recalculate(tabKey) {
 
     d.utilidadNeta = d.utilidadNeta || [];
     d.utilidadNeta[i] = d.utilidadOperativa[i] - d.totalGastosFinancieros[i]
-                      - tierra - (d.adelantoEtapa2[i]||0) - (d.equipamiento[i]||0);
+                      - tierra - (d.adelantoEtapa2?.[i]||0) - (d.equipamiento?.[i]||0);
 
     d.margen = d.margen || [];
     d.margen[i] = d.ingresos[i] ? d.utilidadNeta[i] / d.ingresos[i] : 0;
@@ -810,6 +813,7 @@ function recalculate(tabKey) {
     d.inversionSocios = d.inversionSocios || [];
     d.inversionSocios[i] = (P.tierra === 'capital') ? EQ : (d.tierraBase?.[i] || 0);
 
+    d.aniosProy = d.aniosProy || [];
     if (!d.aniosProy[i]) d.aniosProy[i] = (tabKey === 'e1' ? 6 : 9);
 
     // --- Multiplo y TIR sobre la base vigente
