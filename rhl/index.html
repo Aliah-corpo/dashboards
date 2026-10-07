@@ -784,17 +784,21 @@ function recalculate(tabKey) {
                            - d.totalGastosComercializacion[i];
 
     d.totalGastosFinancieros = d.totalGastosFinancieros || [];
-    d.totalGastosFinancieros[i] = ['interesesBX','comisionAperturaBX','comisionAAD','comisionSPEI','swapBX','interesesNovaro','interesesAAD','fcoNavarro']
+    d.totalGastosFinancieros[i] = ['interesesBX','comisionAperturaBX','otrosGastosFin']
       .filter(viva).reduce((s,k)=>s+(d[k]?.[i]||0),0) + extraDe('financieros');
 
-    // --- PALANCA 1: la tierra entra al P&L solo bajo el criterio de gasto operativo
-    const tierra = (P.tierra === 'gasto') ? (d.tierraBase?.[i] || 0) : 0;
+    // --- Costo de tierra: siempre entra al P&L (igual que Excel R48)
     d.totalCostoTierra = d.totalCostoTierra || [];
-    d.totalCostoTierra[i] = tierra;
+    d.totalCostoTierra[i] = d.costoTierra?.[i] || 0;
 
+    /* Utilidad Neta — replica la formula del Excel:
+       R54 = R30(UtilidadOp) - R44(GastosFin) - R48(Tierra) + R51(AdelantoE2)
+       Como el dashboard suma porRecuperar en utilidadBruta (via sumaHC),
+       se resta aqui para compensar y llegar al mismo resultado. */
     d.utilidadNeta = d.utilidadNeta || [];
     d.utilidadNeta[i] = d.utilidadOperativa[i] - d.totalGastosFinancieros[i]
-                      - tierra - (d.adelantoEtapa2?.[i]||0) - (d.equipamiento?.[i]||0);
+                      - d.totalCostoTierra[i] + (d.adelantoEtapa2?.[i]||0)
+                      - d.porRecuperar[i] + (d.cpc?.[i]||0);
 
     d.margen = d.margen || [];
     d.margen[i] = d.ingresos[i] ? d.utilidadNeta[i] / d.ingresos[i] : 0;
@@ -809,18 +813,22 @@ function recalculate(tabKey) {
     d.devolucion[i] = d.utilidadNeta[i] + (d.contratistaGeneral[i]||0)
                     + d.comisionListing[i] + d.porRecuperar[i];
 
-    // --- Base de inversion: cambia con la palanca de tierra
+    // --- Base de inversion: usa valor del Excel si existe, si no palanca
     d.inversionSocios = d.inversionSocios || [];
-    d.inversionSocios[i] = (P.tierra === 'capital') ? EQ : (d.tierraBase?.[i] || 0);
+    if (!d.inversionSocios[i]) {
+      d.inversionSocios[i] = (P.tierra === 'capital') ? EQ : (d.tierraBase?.[i] || 0);
+    }
 
     d.aniosProy = d.aniosProy || [];
     if (!d.aniosProy[i]) d.aniosProy[i] = (tabKey === 'e1' ? 6 : 9);
 
-    // --- Multiplo y TIR sobre la base vigente
+    /* Multiplo y TIR — replican formulas del Excel:
+       R75 (Multiplo) = R67 / R60 = (UN + porRecuperar) / inversionSocios
+       R77 (TIR)      = (R57 / R60) / R78 = (UN / inversionSocios) / aniosProy */
     d.multiplo = d.multiplo || [];
-    d.multiplo[i] = d.inversionSocios[i] ? d.utilidadNeta[i] / d.inversionSocios[i] : 0;
+    d.multiplo[i] = d.inversionSocios[i] ? (d.utilidadNeta[i] + d.porRecuperar[i]) / d.inversionSocios[i] : 0;
     d.tir = d.tir || [];
-    d.tir[i] = d.multiplo[i] / (d.aniosProy[i] || 1);
+    d.tir[i] = d.inversionSocios[i] ? (d.utilidadNeta[i] / d.inversionSocios[i]) / (d.aniosProy[i] || 1) : 0;
   }
 }
 
