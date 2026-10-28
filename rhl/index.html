@@ -1625,15 +1625,22 @@ const ABS_MESES_CORTOS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep',
 async function cargarAbsorcion(){
   if(!supa) return;
   try {
-    const {data} = await supa.from('absorcion_versiones')
+    const {data, error} = await supa.from('absorcion_versiones')
       .select('data,fecha_corte')
       .eq('dashboard_id', DASHBOARD_ID)
       .eq('is_active', true)
       .limit(1);
+    if(error){
+      console.error('cargarAbsorcion error:', error);
+      showToast('Error al cargar absorcion: '+(error.message||error.code), 'err', 5000);
+      return;
+    }
     if(data && data.length && data[0].data){
       currentData.absorcion = data[0].data;
       const nUds = currentData.absorcion.unidades?.length || 0;
       if(nUds) showToast('Absorcion cargada desde Supabase ('+nUds+' uds)', 'ok');
+    } else {
+      console.log('cargarAbsorcion: no hay datos guardados (rows:', data?.length, ')');
     }
   } catch(e){ console.warn('cargarAbsorcion:', e); }
 }
@@ -1655,34 +1662,54 @@ function showToast(msg, type='ok', duration=3500){
 
 /* ---------- GUARDAR ABSORCION EN SUPABASE ---------- */
 async function guardarAbsorcion(motivo){
-  if(!supa || !isAdmin) return;
+  if(!supa || !isAdmin){
+    console.warn('guardarAbsorcion: supa=', !!supa, 'isAdmin=', isAdmin);
+    if(!isAdmin) showToast('No tienes permisos de admin para guardar', 'warn', 4000);
+    return;
+  }
   try {
     const corte = corteActivo || new Date().toISOString().slice(0,10);
     const absData = currentData.absorcion;
-    const {data:existing} = await supa.from('absorcion_versiones')
+    const {data:existing, error:selErr} = await supa.from('absorcion_versiones')
       .select('id')
       .eq('dashboard_id', DASHBOARD_ID)
       .eq('is_active', true)
       .limit(1);
 
+    if(selErr){
+      console.error('guardarAbsorcion SELECT error:', selErr);
+      showToast('Error al consultar absorcion: '+(selErr.message||JSON.stringify(selErr)), 'err', 5000);
+      return;
+    }
+
+    let writeErr;
     if(existing && existing.length){
-      await supa.from('absorcion_versiones')
+      const {error:updErr} = await supa.from('absorcion_versiones')
         .update({data: absData, fecha_corte: corte, uploaded_by: userSession?.user?.email||'admin'})
         .eq('id', existing[0].id);
+      writeErr = updErr;
     } else {
-      await supa.from('absorcion_versiones').insert({
+      const {error:insErr} = await supa.from('absorcion_versiones').insert({
         dashboard_id: DASHBOARD_ID,
         data: absData,
         fecha_corte: corte,
         uploaded_by: userSession?.user?.email||'admin',
         is_active: true
       });
+      writeErr = insErr;
     }
+
+    if(writeErr){
+      console.error('guardarAbsorcion WRITE error:', writeErr);
+      showToast('Error Supabase al guardar absorcion: '+(writeErr.message||writeErr.code||JSON.stringify(writeErr)), 'err', 6000);
+      return;
+    }
+
     await bitacora('absorcion','megasembrado','absorcion', null, JSON.stringify({unidades: absData.unidades?.length||0}), null, motivo||'Carga MEGASEMBRADO');
-    showToast('Datos de absorcion guardados en Supabase', 'ok');
+    showToast('Absorcion guardada en Supabase ('+( absData.unidades?.length||0)+' uds)', 'ok');
   } catch(e){
     console.warn('guardarAbsorcion:', e);
-    showToast('No se pudo guardar absorcion: '+(e.message||String(e)), 'err', 5000);
+    showToast('Excepcion al guardar absorcion: '+(e.message||String(e)), 'err', 5000);
   }
 }
 
