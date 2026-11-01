@@ -1633,17 +1633,31 @@ async function cargarAbsorcion(){
   if(!supa) return;
   try {
     const {data, error} = await supa.from('absorcion_versiones')
-      .select('data,fecha_corte')
-      .eq('dashboard_id', DASHBOARD_ID)
+      .select('unidades,mega,lib_e2,resumen,fecha_corte')
       .eq('is_active', true)
+      .order('uploaded_at', {ascending:false})
       .limit(1);
     if(error){
       console.error('cargarAbsorcion error:', error);
       showToast('Error al cargar absorcion: '+(error.message||error.code), 'err', 5000);
       return;
     }
-    if(data && data.length && data[0].data){
-      currentData.absorcion = data[0].data;
+    if(data && data.length && data[0].unidades){
+      /* Reconstituir el objeto absorcion desde columnas individuales */
+      const row = data[0];
+      const absObj = row.unidades;
+      /* Si unidades es un objeto completo (con .unidades array), usarlo directo */
+      if(Array.isArray(absObj)){
+        currentData.absorcion = {unidades: absObj};
+      } else if(absObj && typeof absObj === 'object' && Array.isArray(absObj.unidades)){
+        currentData.absorcion = absObj;
+      } else {
+        currentData.absorcion = {unidades: absObj};
+      }
+      /* Enriquecer con mega/lib_e2/resumen si existen */
+      if(row.mega) currentData.absorcion._mega = row.mega;
+      if(row.lib_e2) currentData.absorcion._lib_e2 = row.lib_e2;
+      if(row.resumen) currentData.absorcion._resumen = row.resumen;
       const nUds = currentData.absorcion.unidades?.length || 0;
       if(nUds) showToast('Absorcion cargada desde Supabase ('+nUds+' uds)', 'ok');
     } else {
@@ -1677,10 +1691,20 @@ async function guardarAbsorcion(motivo){
   try {
     const corte = corteActivo || new Date().toISOString().slice(0,10);
     const absData = currentData.absorcion;
+
+    /* Separar en columnas reales de absorcion_versiones */
+    const payload = {
+      unidades: absData,                  /* objeto completo en columna unidades */
+      fecha_corte: corte,
+      uploaded_by: userSession?.user?.email||'admin',
+      origen: 'dashboard',
+      is_active: true
+    };
+
     const {data:existing, error:selErr} = await supa.from('absorcion_versiones')
       .select('id')
-      .eq('dashboard_id', DASHBOARD_ID)
       .eq('is_active', true)
+      .order('uploaded_at', {ascending:false})
       .limit(1);
 
     if(selErr){
@@ -1692,17 +1716,11 @@ async function guardarAbsorcion(motivo){
     let writeErr;
     if(existing && existing.length){
       const {error:updErr} = await supa.from('absorcion_versiones')
-        .update({data: absData, fecha_corte: corte, uploaded_by: userSession?.user?.email||'admin'})
+        .update(payload)
         .eq('id', existing[0].id);
       writeErr = updErr;
     } else {
-      const {error:insErr} = await supa.from('absorcion_versiones').insert({
-        dashboard_id: DASHBOARD_ID,
-        data: absData,
-        fecha_corte: corte,
-        uploaded_by: userSession?.user?.email||'admin',
-        is_active: true
-      });
+      const {error:insErr} = await supa.from('absorcion_versiones').insert(payload);
       writeErr = insErr;
     }
 
