@@ -32,6 +32,7 @@ header{background:var(--charcoal);color:var(--white);padding:22px 0 18px;}
 .rhl-badge{font-size:10px;font-weight:700;letter-spacing:.1em;background:rgba(176,141,87,.25);color:var(--brass);padding:2px 8px;border-radius:4px;vertical-align:middle;font-family:'DM Sans',sans-serif;}
 .hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;}
 .ver-label{font-size:12px;color:rgba(255,255,255,.4);}
+.ver-build{font-size:9px;font-family:'DM Mono',monospace;color:rgba(176,141,87,.6);letter-spacing:.04em;cursor:default;}
 .ver-live{font-size:10px;color:var(--sage);display:none;letter-spacing:.05em;}
 .admin-trigger{background:none;border:none;color:rgba(255,255,255,.15);cursor:pointer;font-size:14px;padding:2px 3px;line-height:1;transition:color .2s;margin-top:2px;}
 .admin-trigger:hover{color:rgba(255,255,255,.5);}
@@ -475,6 +476,7 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
     </div>
     <span class="sello" id="sello-criterio"></span>
     <span class="ver-label" id="ver-indicator">Ago 2026 condensado</span>
+    <span class="ver-build" id="ver-build" title="Version de build del dashboard"></span>
     <span class="ver-live" id="ver-live">datos en vivo</span>
     <button class="admin-trigger" onclick="openAdmin()" title="Administracion">&#9881;</button>
   </div>
@@ -533,6 +535,11 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
 </div>
 
 <script>
+/* ===== BUILD VERSION — CAMBIAR EN CADA DEPLOY ===== */
+const BUILD_VERSION = 'v2026.11.01b';
+const BUILD_DATE    = '2026-11-01T03:15:00';
+/* ================================================== */
+
 const SUPA_URL = 'https://ifmnpzxkictbwgcznxex.supabase.co';
 const SUPA_KEY = 'sb_publishable_mP3VAPMRuFqJPz4pwE0G0Q_BfuSBF23';
 const DASHBOARD_ID = 'rhl';
@@ -1692,9 +1699,14 @@ async function guardarAbsorcion(motivo){
     const corte = corteActivo || new Date().toISOString().slice(0,10);
     const absData = currentData.absorcion;
 
-    /* Separar en columnas reales de absorcion_versiones */
+    /* Separar en columnas reales de absorcion_versiones:
+       unidades (jsonb NOT NULL), mega (jsonb NOT NULL),
+       lib_e2 (jsonb NOT NULL), resumen (jsonb NOT NULL) */
     const payload = {
-      unidades: absData,                  /* objeto completo en columna unidades */
+      unidades: absData.unidades || absData,
+      mega:     absData._mega    || {},
+      lib_e2:   absData._lib_e2  || {},
+      resumen:  absData._resumen || {},
       fecha_corte: corte,
       uploaded_by: userSession?.user?.email||'admin',
       origen: 'dashboard',
@@ -4677,6 +4689,13 @@ async function init(){
   if(s0){ userSession=s0; await arrancarSesion(); }
   else   { mostrarGate(''); }
 }
+
+/* Pintar version de build en el header */
+(function(){
+  const el = document.getElementById('ver-build');
+  if(el) el.textContent = BUILD_VERSION + ' (' + BUILD_DATE.slice(0,10) + ')';
+  console.log('%c[RHL] Build ' + BUILD_VERSION + ' — ' + BUILD_DATE, 'color:#b08d57;font-weight:bold');
+})();
 
 init();
 </script>
