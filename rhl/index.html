@@ -536,7 +536,7 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
 
 <script>
 /* ===== BUILD VERSION — CAMBIAR EN CADA DEPLOY ===== */
-const BUILD_VERSION = 'v2026.11.01b';
+const BUILD_VERSION = 'v2026.11.01c';
 const BUILD_DATE    = '2026-11-01T03:15:00';
 /* ================================================== */
 
@@ -1644,8 +1644,9 @@ async function cargarAbsorcion(){
       .eq('is_active', true)
       .order('uploaded_at', {ascending:false})
       .limit(1);
+    console.log('[cargarAbsorcion] response:', {data: data?.length, error: error?.code||error?.message||null});
     if(error){
-      console.error('cargarAbsorcion error:', error);
+      console.error('[cargarAbsorcion] error detail:', JSON.stringify(error));
       showToast('Error al cargar absorcion: '+(error.message||error.code), 'err', 5000);
       return;
     }
@@ -1713,33 +1714,36 @@ async function guardarAbsorcion(motivo){
       is_active: true
     };
 
-    const {data:existing, error:selErr} = await supa.from('absorcion_versiones')
-      .select('id')
-      .eq('is_active', true)
-      .order('uploaded_at', {ascending:false})
-      .limit(1);
+    console.log('[guardarAbsorcion] payload keys:', Object.keys(payload),
+      'unidades type:', typeof payload.unidades,
+      'mega type:', typeof payload.mega);
 
-    if(selErr){
-      console.error('guardarAbsorcion SELECT error:', selErr);
-      showToast('Error al consultar absorcion: '+(selErr.message||JSON.stringify(selErr)), 'err', 5000);
+    /* Estrategia: INSERT siempre (registro nuevo).
+       Despues desactivar los anteriores con WHERE explicito.
+       Esto evita el error 21000 "UPDATE requires a WHERE clause"
+       que ocurre cuando el SELECT retorna filas sin id visible. */
+
+    /* Paso 1: INSERT nuevo registro */
+    const {data:inserted, error:insErr} = await supa.from('absorcion_versiones')
+      .insert(payload)
+      .select('id');
+
+    if(insErr){
+      console.error('[guardarAbsorcion] INSERT error:', insErr);
+      showToast('Error Supabase al guardar absorcion: '+(insErr.message||insErr.code||JSON.stringify(insErr)), 'err', 6000);
       return;
     }
 
-    let writeErr;
-    if(existing && existing.length){
-      const {error:updErr} = await supa.from('absorcion_versiones')
-        .update(payload)
-        .eq('id', existing[0].id);
-      writeErr = updErr;
-    } else {
-      const {error:insErr} = await supa.from('absorcion_versiones').insert(payload);
-      writeErr = insErr;
-    }
+    const newId = inserted?.[0]?.id;
+    console.log('[guardarAbsorcion] INSERT ok, newId:', newId);
 
-    if(writeErr){
-      console.error('guardarAbsorcion WRITE error:', writeErr);
-      showToast('Error Supabase al guardar absorcion: '+(writeErr.message||writeErr.code||JSON.stringify(writeErr)), 'err', 6000);
-      return;
+    /* Paso 2: Desactivar registros anteriores (si hay newId para excluir) */
+    if(newId){
+      const {error:deactErr} = await supa.from('absorcion_versiones')
+        .update({is_active: false})
+        .eq('is_active', true)
+        .neq('id', newId);
+      if(deactErr) console.warn('[guardarAbsorcion] deactivate prev warning:', deactErr);
     }
 
     await bitacora('absorcion','megasembrado','absorcion', null, JSON.stringify({unidades: absData.unidades?.length||0}), null, motivo||'Carga MEGASEMBRADO');
