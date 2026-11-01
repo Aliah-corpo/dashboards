@@ -695,6 +695,7 @@ const ROWS_BASE = [
   {key:'costoTierra',                 label:'Costo de la tierra',               fmt:fmtFull, type:'data',       isExpense:true},
   {key:'adelantoEtapa2',              label:'Adelanto Etapa 2',                 fmt:fmtFull, type:'data',       isExpense:true},
   {key:'totalCostoTierra',            label:'Total Costo tierra',               fmt:fmtFull, type:'total',      isExpense:true},
+  {key:'allCost',                    label:'All Cost',                          fmt:fmtFull, type:'hero',       isExpense:true},
   {key:'_sep45',                      label:'Recuperaciones',                    type:'section'},
   {key:'recEquipamiento',             label:'Equipamiento',                      fmt:fmtFull, type:'data',  isExpense:false},
   {key:'recNegociacion',              label:'Negociacion Contratistas',          fmt:fmtFull, type:'data',  isExpense:false},
@@ -803,6 +804,12 @@ function recalculate(tabKey) {
     // --- Costo de tierra: siempre entra al P&L (igual que Excel R48)
     d.totalCostoTierra = d.totalCostoTierra || [];
     d.totalCostoTierra[i] = d.costoTierra?.[i] || 0;
+
+    // --- All Cost = HC + Operativos + Comercializacion + Financieros + Tierra
+    d.allCost = d.allCost || [];
+    d.allCost[i] = (d.sumaHC?.[i]||0) + (d.totalGastosOperativos?.[i]||0)
+                 + (d.totalGastosComercializacion?.[i]||0) + (d.totalGastosFinancieros?.[i]||0)
+                 + (d.totalCostoTierra?.[i]||0);
 
     /* Utilidad Neta — replica la formula del Excel:
        R54 = R30(UtilidadOp) - R44(GastosFin) - R48(Tierra) + R51(AdelantoE2)
@@ -2960,9 +2967,10 @@ function renderTab(id, tabData, logradoData) {
             <div><p style="font-size:10px;color:var(--muted);margin:0 0 2px">TIR</p><p style="font-size:17px;font-weight:700;margin:0">${fmtPct(e1d.tir?.[e1last])}</p></div>
             <div><p style="font-size:10px;color:var(--muted);margin:0 0 2px">Multiplo</p><p style="font-size:17px;font-weight:700;margin:0">${fmtMult(e1d.multiplo?.[e1last])}</p></div>
           </div>
-          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
             <div><p style="font-size:10px;color:var(--muted);margin:0 0 2px">Ingresos</p><p style="font-size:13px;font-weight:600;margin:0">${fmtCur(e1d.ingresos?.[e1last])}</p></div>
             <div><p style="font-size:10px;color:var(--muted);margin:0 0 2px">Costo Obra</p><p style="font-size:13px;font-weight:600;margin:0">${fmtCur(e1d.costoObra?.[e1last])}</p></div>
+            <div><p style="font-size:10px;color:var(--muted);margin:0 0 2px;font-weight:700">All Cost</p><p style="font-size:13px;font-weight:700;margin:0;color:var(--expense)">${fmtCur(e1d.allCost?.[e1last])}</p></div>
           </div>
         </div>
         <div style="border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;border-top:3px solid var(--brass)">
@@ -2973,9 +2981,10 @@ function renderTab(id, tabData, logradoData) {
             <div><p style="font-size:10px;color:var(--muted);margin:0 0 2px">TIR</p><p style="font-size:17px;font-weight:700;margin:0">${fmtPct(e2d.tir?.[e2last])}</p></div>
             <div><p style="font-size:10px;color:var(--muted);margin:0 0 2px">Multiplo</p><p style="font-size:17px;font-weight:700;margin:0">${fmtMult(e2d.multiplo?.[e2last])}</p></div>
           </div>
-          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
             <div><p style="font-size:10px;color:var(--muted);margin:0 0 2px">Ingresos</p><p style="font-size:13px;font-weight:600;margin:0">${fmtCur(e2d.ingresos?.[e2last])}</p></div>
             <div><p style="font-size:10px;color:var(--muted);margin:0 0 2px">Costo Obra</p><p style="font-size:13px;font-weight:600;margin:0">${fmtCur(e2d.costoObra?.[e2last])}</p></div>
+            <div><p style="font-size:10px;color:var(--muted);margin:0 0 2px;font-weight:700">All Cost</p><p style="font-size:13px;font-weight:700;margin:0;color:var(--expense)">${fmtCur(e2d.allCost?.[e2last])}</p></div>
           </div>
         </div>
       </div>
