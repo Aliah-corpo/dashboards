@@ -439,6 +439,27 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
 .toggle-adelanto input:checked+.sw{background:var(--brass)}
 .toggle-adelanto input:checked+.sw::after{transform:translateX(18px)}
 .toggle-adelanto .hint{font-size:11px;color:var(--muted);margin-left:auto}
+
+/* Desglose por Rubro */
+.desglose-tbl{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.desglose-tbl th{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);padding:6px 8px;text-align:right;border-bottom:2px solid var(--border);white-space:nowrap}
+.desglose-tbl th:first-child{text-align:left;width:28%}
+.desglose-tbl th.col-e1{color:var(--olive)}
+.desglose-tbl th.col-e2{color:var(--brass-dark)}
+.desglose-tbl td{padding:5px 8px;text-align:right;border-bottom:1px solid rgba(232,230,223,.5);
+  font-variant-numeric:tabular-nums;font-size:12px}
+.desglose-tbl td:first-child{text-align:left;font-weight:500;font-size:11px;color:var(--charcoal)}
+.desglose-tbl tr.desg-section td{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);padding:12px 8px 4px;border-bottom:1px solid var(--border);background:transparent}
+.desglose-tbl tr.desg-section td:not(:first-child){border-bottom:none}
+.desglose-tbl tr.desg-total td{font-weight:700;border-top:1px solid var(--border);border-bottom:2px solid var(--border)}
+.desglose-tbl tr.desg-hero td{font-weight:700;font-size:13px;background:rgba(72,77,49,.04);
+  border-top:2px solid var(--olive);border-bottom:2px solid var(--olive)}
+.desglose-tbl .delta-pos{color:#2E7D32;font-size:10px}
+.desglose-tbl .delta-neg{color:var(--error);font-size:10px}
+.desglose-tbl .delta-zero{color:var(--muted);font-size:10px}
+.desglose-tbl .col-sep{border-left:2px solid var(--border)}
 </style>
 </head>
 <body>
@@ -536,8 +557,8 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
 
 <script>
 /* ===== BUILD VERSION — CAMBIAR EN CADA DEPLOY ===== */
-const BUILD_VERSION = 'v2026.11.01c';
-const BUILD_DATE    = '2026-11-01T03:15:00';
+const BUILD_VERSION = 'v2026.11.01d';
+const BUILD_DATE    = '2026-11-01T04:10:00';
 /* ================================================== */
 
 const SUPA_URL = 'https://ifmnpzxkictbwgcznxex.supabase.co';
@@ -1666,6 +1687,26 @@ async function cargarAbsorcion(){
       if(row.mega) currentData.absorcion._mega = row.mega;
       if(row.lib_e2) currentData.absorcion._lib_e2 = row.lib_e2;
       if(row.resumen) currentData.absorcion._resumen = row.resumen;
+      /* Restaurar monthCols desde resumen, o reconstruir desde flujos */
+      if(row.resumen?.monthCols?.length){
+        currentData.absorcion.monthCols = row.resumen.monthCols;
+      } else {
+        const mSet = new Set();
+        (currentData.absorcion.unidades||[]).forEach(u => {
+          Object.keys(u.flujosPlan||{}).forEach(k=>mSet.add(k));
+          Object.keys(u.flujosEscrit||{}).forEach(k=>mSet.add(k));
+        });
+        if(mSet.size){
+          const mOrd = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+          const sortKey = m => {
+            const p = m.match(/^([a-z]{3})(\d{2})$/i);
+            if(!p) return m;
+            return String(parseInt(p[2],10)*100 + (mOrd.indexOf(p[1].toLowerCase())>=0?mOrd.indexOf(p[1].toLowerCase()):99));
+          };
+          currentData.absorcion.monthCols = [...mSet].sort((a,b)=>sortKey(a).localeCompare(sortKey(b)));
+          console.log('[cargarAbsorcion] monthCols reconstruido:', currentData.absorcion.monthCols.length, 'meses');
+        }
+      }
       const nUds = currentData.absorcion.unidades?.length || 0;
       if(nUds) showToast('Absorcion cargada desde Supabase ('+nUds+' uds)', 'ok');
     } else {
@@ -1707,7 +1748,7 @@ async function guardarAbsorcion(motivo){
       unidades: absData.unidades || absData,
       mega:     absData._mega    || {},
       lib_e2:   absData._lib_e2  || {},
-      resumen:  absData._resumen || {},
+      resumen:  Object.assign({}, absData._resumen||{}, {monthCols: absData.monthCols||[]}),
       fecha_corte: corte,
       uploaded_by: userSession?.user?.email||'admin',
       origen: 'dashboard',
