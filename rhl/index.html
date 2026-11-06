@@ -162,7 +162,16 @@ tr.provision td{font-style:italic;color:var(--muted)!important;}
 
 /* LOGRADO */
 .logrado-section{margin:20px 0;}
-.logrado-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.logrado-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start;}
+@media(max-width:900px){.logrado-grid{grid-template-columns:1fr;}}
+.lg-par{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.lg-col{min-width:0;}
+.lg-cap{display:flex;justify-content:space-between;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:3px;}
+.lg-cap b{color:var(--charcoal);}
+.lg-trk{background:rgba(0,0,0,.07);border-radius:5px;overflow:hidden;}
+.lg-trk>div{height:100%;border-radius:5px;}
+.lg-val{font-size:11px;font-weight:600;margin-top:3px;color:var(--charcoal);}
+.logrado-mes{border:1px solid var(--border);border-radius:10px;padding:14px 16px;background:var(--white);min-width:0;}
 .logrado-bar-wrap{margin:10px 0;}
 .logrado-label{font-size:13px;font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;align-items:baseline;}
 .logrado-track{background:var(--border);border-radius:6px;height:26px;overflow:hidden;}
@@ -577,8 +586,8 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
 
 <script>
 /* ===== BUILD VERSION — CAMBIAR EN CADA DEPLOY ===== */
-const BUILD_VERSION = 'v2026.11.05c';
-const BUILD_DATE    = '2026-11-05T21:00:00';
+const BUILD_VERSION = 'v2026.11.05e';
+const BUILD_DATE    = '2026-11-05T23:30:00';
 /* ================================================== */
 
 const SUPA_URL = 'https://ifmnpzxkictbwgcznxex.supabase.co';
@@ -3297,6 +3306,7 @@ function renderTab(id, tabData, logradoData) {
     const mesLabels={ene:'Enero',feb:'Febrero',mar:'Marzo',abr:'Abril',may:'Mayo',jun:'Junio',jul:'Julio',ago:'Agosto',sep:'Septiembre',oct:'Octubre',nov:'Noviembre',dic:'Diciembre'};
     const mesesOrden=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
     const mesesDisponibles=Object.keys(logradoData).filter(m=>logradoData[m]).sort((a,b)=>mesesOrden.indexOf(a)-mesesOrden.indexOf(b));
+    logradoHtml += '<div class="logrado-grid">';
     for(const mes of mesesDisponibles){
       if(!logradoData[mes]) continue;
       const lg=logradoData[mes].logrado, pl=logradoData[mes].porLograr;
@@ -3309,17 +3319,22 @@ function renderTab(id, tabData, logradoData) {
         const h = height || 26, fs = fontSz || 13;
         const falta = expectativa - logrado;
         const pct = expectativa ? Math.max(0, Math.min(100, (logrado/expectativa)*100)) : 0;
-        return `<div class="logrado-bar-wrap" style="margin:${h>20?'10':'4'}px 0">
+        const pf = Math.max(0, 100-pct);
+        return `<div class="logrado-bar-wrap" style="margin:${h>20?'10':'5'}px 0">
           <div class="logrado-label" style="font-size:${fs}px">
             <span style="font-weight:700">${lbl} <span style="font-weight:400;color:var(--muted);font-size:${fs-1}px">${fmtCur(expectativa)}</span></span>
-            <span class="logrado-expect">${pct.toFixed(0)}%</span>
           </div>
-          <div class="logrado-track" style="height:${h}px">
-            <div class="logrado-fill" style="width:${pct.toFixed(1)}%;background:${color};font-size:${h>20?12:10}px">${pct>=8?pct.toFixed(0)+'%':''}</div>
-          </div>
-          <div class="logrado-values">
-            <span>Logrado: ${fmtCur(logrado)}</span>
-            <span>Por lograr: ${fmtCur(falta)}</span>
+          <div class="lg-par">
+            <div class="lg-col">
+              <div class="lg-cap"><span>Logrado</span><b>${pct.toFixed(0)}%</b></div>
+              <div class="lg-trk" style="height:${h}px"><div style="width:${pct.toFixed(1)}%;background:${color}"></div></div>
+              <div class="lg-val">${fmtCur(logrado)}</div>
+            </div>
+            <div class="lg-col">
+              <div class="lg-cap"><span>Por lograr</span><b>${pf.toFixed(0)}%</b></div>
+              <div class="lg-trk" style="height:${h}px"><div style="width:${pf.toFixed(1)}%;background:var(--brass,#c9a96e)"></div></div>
+              <div class="lg-val">${fmtCur(falta)}</div>
+            </div>
           </div>
         </div>`;
       }
@@ -3344,7 +3359,7 @@ function renderTab(id, tabData, logradoData) {
       const lgSC       = lgSC1 + lgSC2 + lgSC3;
       const lgCostoTotal = lgHC + lgSC;
 
-      logradoHtml+=`<div style="margin-bottom:28px"><h3 style="font-size:14px;margin:0 0 14px;font-family:'Outfit',sans-serif">${label}</h3>`;
+      logradoHtml+=`<div class="logrado-mes"><h3 style="font-size:14px;margin:0 0 10px;font-family:'Outfit',sans-serif">${label}</h3>`;
 
       /* ——— 1. INGRESOS (colapsable: absorcion por torre) ——— */
       logradoHtml += `<div style="cursor:pointer" onclick="document.getElementById('det-ing-${uid}').style.display=document.getElementById('det-ing-${uid}').style.display==='none'?'block':'none'">`;
@@ -3512,6 +3527,7 @@ function renderTab(id, tabData, logradoData) {
 
       logradoHtml+='</div>';
     }
+    logradoHtml += '</div>';
     logradoHtml+='</div></div>';
   }
 
