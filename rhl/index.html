@@ -523,6 +523,7 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
 
 <div class="wrap">
   <div class="corte-banner" id="corte-banner"></div>
+  <div class="corte-banner" id="embed-banner"></div>
   <div class="palancas" id="palancas">
     <div class="pal-grp">
       <span class="pal-lbl">Tierra</span>
@@ -552,12 +553,14 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
     <button class="tab active" data-tab="e1">Etapa 1</button>
     <button class="tab" data-tab="e2">Etapa 2</button>
     <button class="tab" data-tab="cons">Consolidado</button>
+    <button class="tab" data-tab="flujos">Balance de Flujos</button>
     <button class="tab" data-tab="breakdown">Breakdown HC/SC</button>
     <button class="tab" data-tab="absorcion">Absorcion y Flujos</button>
   </div>
   <div class="tab-content active" id="panel-e1"></div>
   <div class="tab-content" id="panel-e2"></div>
   <div class="tab-content" id="panel-cons"></div>
+  <div class="tab-content" id="panel-flujos"></div>
   <div class="tab-content" id="panel-breakdown"></div>
   <div class="tab-content" id="panel-absorcion"></div>
 </div>
@@ -574,8 +577,8 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
 
 <script>
 /* ===== BUILD VERSION — CAMBIAR EN CADA DEPLOY ===== */
-const BUILD_VERSION = 'v2026.11.05b';
-const BUILD_DATE    = '2026-11-05T19:00:00';
+const BUILD_VERSION = 'v2026.11.05c';
+const BUILD_DATE    = '2026-11-05T21:00:00';
 /* ================================================== */
 
 const SUPA_URL = 'https://ifmnpzxkictbwgcznxex.supabase.co';
@@ -1096,6 +1099,7 @@ async function arrancarSesion(){
   await cargarBreakdown();
   await cargarAbsorcion();
   pintarBannerCorte();
+  pintarAvisoEmbebido();
   pintarPalancas();
   renderAll();
   ocultarGate();
@@ -2102,7 +2106,6 @@ function buildAbsorcionHtml(absData){
     <button class="abs-tab-btn on" onclick="switchAbsTab(this,'abs-estado')">Estado de Absorcion</button>
     <button class="abs-tab-btn" onclick="switchAbsTab(this,'abs-logrado')">Logrado y Por Lograr</button>
     <button class="abs-tab-btn" onclick="switchAbsTab(this,'abs-flujos')">Flujos Esperados</button>
-    <button class="abs-tab-btn" onclick="switchAbsTab(this,'abs-balance')">Balance de Flujos</button>
   </div>`;
 
   /* ===== SUB-TAB 1: ESTADO DE ABSORCION ===== */
@@ -2294,9 +2297,6 @@ function buildAbsorcionHtml(absData){
   }
 
   html += `</div>`; /* close abs-flujos */
-
-  /* ===== SUB-TAB 4: BALANCE DE FLUJOS (Excel) ===== */
-  html += `<div class="abs-panel" id="abs-balance">${buildFlujosBalanceHtml()}</div>`;
 
   /* ===== ALERTAS DE VALIDACION (auditor operativo) ===== */
   const alertas = absData.alertas || [];
@@ -2519,13 +2519,14 @@ function buildFlujosBalanceHtml(){
   </div>`;
 }
 
+function renderFlujos(){ const el=document.getElementById('panel-flujos'); if(el) el.innerHTML = buildFlujosBalanceHtml(); }
 function renderAbsorcion(){
   const el = document.getElementById('panel-absorcion');
   if(!el) return;
   if(!currentData.absorcion || !currentData.absorcion.unidades){
-    el.innerHTML = buildFlujosBalanceHtml() + `<div class="card"><p class="card-title">Absorción y Flujos</p>
+    el.innerHTML = `<div class="card"><p class="card-title">Absorcion y Flujos</p>
       <p style="color:var(--muted);font-size:14px;margin:0">
-      Pendiente de cargar. Sube el MEGASEMBRADO desde el panel de administración.</p></div>`;
+      Pendiente de cargar. Sube el MEGASEMBRADO desde el panel de administracion.</p></div>`;
     return;
   }
   el.innerHTML = buildAbsorcionHtml(currentData.absorcion);
@@ -2958,6 +2959,29 @@ function fmtFechaLarga(iso){
   return `${d} de ${MES[m-1]} de ${y}`;
 }
 
+
+/* ===== AVISO: el HTML trae un corte mas nuevo que el que esta publicado en Supabase ===== */
+function _numEsc(label){
+  const m = String(label||'').match(/(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic)[a-z]*\\s*(\\d{4})/i);
+  if(!m) return 0;
+  const i = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'].indexOf(m[1].toLowerCase());
+  return parseInt(m[2],10)*12 + i;
+}
+function pintarAvisoEmbebido(){
+  const b = document.getElementById('embed-banner'); if(!b) return;
+  b.classList.remove('on'); b.innerHTML = '';
+  if(!isAdmin || enHistorico || !currentData?.e1?.scenarios?.length) return;
+  const emb = EMBEDDED_DATA.e1.scenarios, act = currentData.e1.scenarios;
+  const nEmb = _numEsc(emb[emb.length-1]), nAct = _numEsc(act[act.length-1]);
+  const masNuevo = nEmb > nAct;
+  const sinFlujos = nEmb === nAct && !currentData.flujos && !!EMBEDDED_DATA.flujos;
+  if(!masNuevo && !sinFlujos) return;
+  b.classList.add('on');
+  b.innerHTML = `Este archivo (${BUILD_VERSION}) trae el corte <b>${emb[emb.length-1]}</b>`
+    + (sinFlujos ? ' con el Balance de Flujos' : '') + `, pero lo publicado en Supabase es <b>${act[act.length-1]}</b>. `
+    + `<button id="embed-banner-btn" class="btn btn-primary btn-sm" onclick="handleSyncEmbedded()">Publicar ${emb[emb.length-1]}</button>`;
+}
+
 function pintarBannerCorte(){
   const b = document.getElementById('corte-banner');
   const r = document.getElementById('corte-reset');
@@ -3055,6 +3079,7 @@ function renderAll() {
   /* Consolidado: construir logrado sumando E1 + E2 */
   const consLogrado = buildConsLogrado();
   renderTab('cons', currentData.cons, consLogrado);
+  renderFlujos();
   renderBreakdown();
   renderAbsorcion();
   if(isAdmin) { activateInlineEditing(); activateNumericEditing(); }
@@ -4606,7 +4631,7 @@ function renderAdminPanel(){
 
 async function handleSyncEmbedded(){
   if(!supa||!isAdmin)return;
-  const btn=document.getElementById('sync-embed-btn');
+  const btn=document.getElementById('sync-embed-btn')||document.getElementById('embed-banner-btn')||{};
   const st=document.getElementById('sync-status');
   function setSyncSt(msg,type){if(!st)return;st.style.display='block';st.className='status-msg'+(type==='err'?' error':'')+(type==='ok'?' success':'');st.textContent=msg;}
   btn.disabled=true;btn.textContent='Sincronizando...';setSyncSt('Preparando datos embebidos...','info');
@@ -4615,7 +4640,7 @@ async function handleSyncEmbedded(){
     if(currentData.labels) embData.labels=currentData.labels;
     if(currentData.palancas) embData.palancas=currentData.palancas;
     if(currentData.equityTotal) embData.equityTotal=currentData.equityTotal;
-    const label='Sync embebidos '+new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+    const label=(EMBEDDED_DATA.criterioCorte||'Datos embebidos')+' · publicado '+new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
     const corte=new Date().toISOString().slice(0,10);
     /* Desactivar versiones previas */
     await supa.from('cierre_versiones').update({is_active:false}).eq('dashboard_id',DASHBOARD_ID).eq('is_active',true);
@@ -4632,6 +4657,8 @@ async function handleSyncEmbedded(){
     fijarRefConsolidado();pintarPalancas();renderAll();
     await cargarCortes();await loadVersionHistory();
     setSyncSt('Datos embebidos sincronizados como version activa.','ok');
+    document.getElementById('ver-indicator').textContent=label;
+    pintarAvisoEmbebido(); showToast('Publicado: '+label,'ok');
     setTimeout(()=>renderAdminPanel(),1500);
   }catch(ex){setSyncSt('Error: '+(ex.message||String(ex)),'err');}
   btn.disabled=false;btn.textContent='Sincronizar datos embebidos';
