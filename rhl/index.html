@@ -164,6 +164,12 @@ tr.provision td{font-style:italic;color:var(--muted)!important;}
 .logrado-section{margin:20px 0;}
 .logrado-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start;}
 @media(max-width:900px){.logrado-grid{grid-template-columns:1fr;}}
+.lg-delta{margin-left:8px;font-size:11px;font-weight:700;white-space:nowrap;}
+.lg-delta.up{color:#4b6b3a;}
+.lg-delta.dn{color:var(--error,#9A3B3B);}
+.lg-ref-bar{background:rgba(0,0,0,.07);border-radius:5px;overflow:hidden;}
+.lg-ref-bar>div{height:100%;border-radius:5px;}
+.lg-ref-nota{font-size:11px;color:var(--muted);margin:0 0 10px;}
 .lg-par{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .lg-col{min-width:0;}
 .lg-cap{display:flex;justify-content:space-between;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:3px;}
@@ -586,8 +592,8 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
 
 <script>
 /* ===== BUILD VERSION — CAMBIAR EN CADA DEPLOY ===== */
-const BUILD_VERSION = 'v2026.11.10b';
-const BUILD_DATE    = '2026-11-10T19:00:00';
+const BUILD_VERSION = 'v2026.11.10c';
+const BUILD_DATE    = '2026-11-10T21:00:00';
 /* ================================================== */
 
 const SUPA_URL = 'https://ifmnpzxkictbwgcznxex.supabase.co';
@@ -3288,7 +3294,7 @@ function renderTab(id, tabData, logradoData) {
     if(scenarios.length > 1){
       comparadorHtml = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
         <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Comparar vs:</span>
-        <select id="comp-sel-${id}" onchange="renderComparador('${id}');aplicarMesesComparador('${id}')" style="padding:5px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--charcoal);background:var(--white);cursor:pointer">
+        <select id="comp-sel-${id}" onchange="aplicarMesesComparador('${id}')" style="padding:5px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--charcoal);background:var(--white);cursor:pointer">
           <option value="">Solo actual</option>`;
       for(let si=0; si<scenarios.length-1; si++){
         comparadorHtml += `<option value="${si}">${scenarios[si]}</option>`;
@@ -3321,9 +3327,9 @@ function renderTab(id, tabData, logradoData) {
         const falta = expectativa - logrado;
         const pct = expectativa ? Math.max(0, Math.min(100, (logrado/expectativa)*100)) : 0;
         const pf = Math.max(0, 100-pct);
-        return `<div class="logrado-bar-wrap" style="margin:${h>20?'10':'5'}px 0">
+        return `<div class="logrado-bar-wrap" data-rub="${lbl}" data-lg="${logrado}" data-exp="${expectativa}" style="margin:${h>20?'10':'5'}px 0">
           <div class="logrado-label" style="font-size:${fs}px">
-            <span style="font-weight:700">${lbl} <span style="font-weight:400;color:var(--muted);font-size:${fs-1}px">${fmtCur(expectativa)}</span></span>
+            <span style="font-weight:700">${lbl} <span style="font-weight:400;color:var(--muted);font-size:${fs-1}px">${fmtCur(expectativa)}</span><span class="lg-delta"></span></span>
           </div>
           <div class="lg-par">
             <div class="lg-col">
@@ -3714,22 +3720,77 @@ function renderTab(id, tabData, logradoData) {
 }
 
 /* ===== COMPARADOR DE MESES ===== */
+function _lgSigno(v){ return (v>0?'+':'')+v.toFixed(1)+'%'; }
+function _lgChip(el, txt, v){ if(!el) return; el.textContent = txt; el.className = 'lg-delta ' + (v>0?'up':v<0?'dn':''); }
 function aplicarMesesComparador(id){
   const sec = document.querySelector('.logrado-section[data-lgid="'+id+'"]'); if(!sec) return;
   const sel = document.getElementById('comp-sel-'+id);
+  const cont = document.getElementById('comp-bars-'+id); if(cont) cont.innerHTML = '';
+  sec.querySelectorAll('.lg-ref').forEach(e=>e.remove());
+  sec.querySelectorAll('.lg-delta').forEach(e=>{ e.textContent=''; e.className='lg-delta'; });
   const cards = [...sec.querySelectorAll('.logrado-mes')];
   const meses = cards.map(c=>c.dataset.mes);
   const actual = meses[meses.length-1];
-  let visibles = [actual];
-  if(sel && sel.value!==''){
-    const lbl = (sel.options[sel.selectedIndex].text||'').trim().toLowerCase();
-    const m3 = lbl.slice(0,3);
-    const yr = (lbl.match(/20[0-9][0-9]/)||[''])[0];
-    if(meses.includes(m3) && (yr==='' || yr==='2026')) visibles = [m3, actual];
-  }
-  cards.forEach(c=>{ c.style.display = visibles.includes(c.dataset.mes) ? '' : 'none'; });
+  const cardAct = cards[cards.length-1];
   const g = sec.querySelector('.logrado-grid');
-  if(g){ g.style.gridTemplateColumns = 'repeat('+visibles.length+',minmax(0,1fr))'; g.style.maxWidth = visibles.length===1 ? '680px' : ''; }
+  const mostrar = (lista)=>{
+    cards.forEach(c=>{ c.style.display = lista.includes(c.dataset.mes) ? '' : 'none'; });
+    const n = lista.length + sec.querySelectorAll('.lg-ref').length;
+    g.style.gridTemplateColumns = 'repeat('+Math.max(1,n)+',minmax(0,1fr))';
+    g.style.maxWidth = n<=1 ? '680px' : '';
+  };
+  if(!sel || sel.value===''){ mostrar([actual]); return; }
+  const optTxt = (sel.options[sel.selectedIndex].text||'').trim();
+  const m3 = optTxt.toLowerCase().slice(0,3);
+  const yr = (optTxt.match(/20[0-9][0-9]/)||[''])[0];
+  const labActual = (currentData[id].scenarios||[]).slice(-1)[0] || 'Actual';
+
+  /* Caso 1: el mes elegido tiene avance real -> misma tarjeta, lado a lado, con variacion */
+  if(meses.includes(m3) && (yr==='' || yr==='2026') && m3!==actual){
+    mostrar([m3, actual]);
+    const cardM = cards[meses.indexOf(m3)];
+    cardAct.querySelectorAll('.logrado-bar-wrap').forEach(w=>{
+      const o = cardM.querySelector('.logrado-bar-wrap[data-rub="'+w.dataset.rub.replace(/"/g,'\\"')+'"]'); if(!o) return;
+      const a = parseFloat(w.dataset.lg), b = parseFloat(o.dataset.lg);
+      const pa = parseFloat(w.dataset.exp) ? a/parseFloat(w.dataset.exp)*100 : 0;
+      const pb = parseFloat(o.dataset.exp) ? b/parseFloat(o.dataset.exp)*100 : 0;
+      const dv = b ? (a-b)/Math.abs(b)*100 : 0, dp = pa-pb;
+      _lgChip(w.querySelector('.lg-delta'), 'vs '+optTxt+': '+_lgSigno(dv)+' logrado · '+(dp>=0?'+':'')+dp.toFixed(1)+' pts', dv);
+    });
+    return;
+  }
+
+  /* Caso 2: escenario sin avance real -> tarjeta de referencia con el mismo formato */
+  const tab = currentData[id], d = tab.data, si = parseInt(sel.value), last = tab.scenarios.length-1;
+  const v = (k,i)=> (d[k] && d[k][i]) || 0;
+  const rub = (i)=>({
+    'Ingresos': v('ingresos',i),
+    'Hard Cost': v('sumaHC',i),
+    'Soft Cost': v('totalGastosOperativos',i)+v('totalGastosComercializacion',i)+v('totalGastosFinancieros',i),
+    'Gastos Operativos (SC1)': v('totalGastosOperativos',i),
+    'Gastos de Comercializacion (SC2)': v('totalGastosComercializacion',i),
+    'Gastos Financieros (SC3)': v('totalGastosFinancieros',i)
+  });
+  const R = rub(si), A = rub(last);
+  const colores = {'Ingresos':'var(--olive)','Hard Cost':'var(--charcoal)','Soft Cost':'var(--green)'};
+  let h = '<div class="logrado-mes lg-ref"><h3 style="font-size:14px;margin:0 0 6px;font-family:\'Outfit\',sans-serif">'+optTxt+' <span style="font-weight:400;font-size:11px;color:var(--muted)">escenario</span></h3>'
+        + '<p class="lg-ref-nota">Escenario proyectado: no tiene avance real (logrado / por lograr).</p>';
+  Object.keys(R).forEach(k=>{
+    const sub = k.indexOf('(SC')>=0;
+    const max = Math.max(Math.abs(R[k]),Math.abs(A[k]))||1;
+    const dv = R[k] ? (A[k]-R[k])/Math.abs(R[k])*100 : 0;
+    h += '<div style="margin:'+(sub?'5px 0 5px 22px':'10px 0')+'"><div style="font-size:'+(sub?11:13)+'px;font-weight:700">'+k
+       + ' <span style="font-weight:400;color:var(--muted)">'+fmtCur(R[k])+'</span></div>'
+       + '<div class="lg-ref-bar" style="height:'+(sub?14:28)+'px"><div style="width:'+(Math.abs(R[k])/max*100).toFixed(1)+'%;background:'+(colores[k]||'var(--sage)')+'"></div></div></div>';
+  });
+  h += '</div>';
+  g.insertAdjacentHTML('afterbegin', h);
+  mostrar([actual]);
+  cardAct.querySelectorAll('.logrado-bar-wrap').forEach(w=>{
+    const k = w.dataset.rub; if(!(k in R)) return;
+    const dv = R[k] ? (A[k]-R[k])/Math.abs(R[k])*100 : 0;
+    _lgChip(w.querySelector('.lg-delta'), 'vs '+optTxt+': '+_lgSigno(dv), dv);
+  });
 }
 function renderComparador(tabId){
   const sel = document.getElementById('comp-sel-'+tabId);
