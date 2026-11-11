@@ -164,11 +164,6 @@ tr.provision td{font-style:italic;color:var(--muted)!important;}
 .logrado-section{margin:20px 0;}
 .logrado-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start;}
 @media(max-width:900px){.logrado-grid{grid-template-columns:1fr;}}
-.lg-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px;}
-.lg-chips-l{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:4px;}
-.lg-chip{padding:5px 12px;border:1px solid var(--border);border-radius:16px;background:var(--white);font-size:12px;font-family:'DM Sans',sans-serif;color:var(--charcoal);cursor:pointer;}
-.lg-chip.on{background:var(--olive);border-color:var(--olive);color:#fff;font-weight:600;}
-.lg-chip-todos{border-style:dashed;}
 .lg-par{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .lg-col{min-width:0;}
 .lg-cap{display:flex;justify-content:space-between;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:3px;}
@@ -591,8 +586,8 @@ table.abs-flujos tr.abs-flujos-total:hover td{background:rgba(164,172,140,.12);}
 
 <script>
 /* ===== BUILD VERSION — CAMBIAR EN CADA DEPLOY ===== */
-const BUILD_VERSION = 'v2026.11.10a';
-const BUILD_DATE    = '2026-11-10T17:30:00';
+const BUILD_VERSION = 'v2026.11.10b';
+const BUILD_DATE    = '2026-11-10T19:00:00';
 /* ================================================== */
 
 const SUPA_URL = 'https://ifmnpzxkictbwgcznxex.supabase.co';
@@ -3293,7 +3288,7 @@ function renderTab(id, tabData, logradoData) {
     if(scenarios.length > 1){
       comparadorHtml = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
         <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Comparar vs:</span>
-        <select id="comp-sel-${id}" onchange="renderComparador('${id}')" style="padding:5px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--charcoal);background:var(--white);cursor:pointer">
+        <select id="comp-sel-${id}" onchange="renderComparador('${id}');aplicarMesesComparador('${id}')" style="padding:5px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--charcoal);background:var(--white);cursor:pointer">
           <option value="">Solo actual</option>`;
       for(let si=0; si<scenarios.length-1; si++){
         comparadorHtml += `<option value="${si}">${scenarios[si]}</option>`;
@@ -3311,17 +3306,8 @@ function renderTab(id, tabData, logradoData) {
     const mesLabels={ene:'Enero',feb:'Febrero',mar:'Marzo',abr:'Abril',may:'Mayo',jun:'Junio',jul:'Julio',ago:'Agosto',sep:'Septiembre',oct:'Octubre',nov:'Noviembre',dic:'Diciembre'};
     const mesesOrden=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
     const mesesDisponibles=Object.keys(logradoData).filter(m=>logradoData[m]).sort((a,b)=>mesesOrden.indexOf(a)-mesesOrden.indexOf(b));
-    window._mesSel = window._mesSel || {};
     const _mUlt = mesesDisponibles[mesesDisponibles.length-1];
-    let _sel = (_mesSel[id]||[]).filter(m=>mesesDisponibles.includes(m));
-    if(!_sel.length) _sel = [_mUlt];
-    _mesSel[id] = _sel;
-    logradoHtml += '<div class="lg-chips"><span class="lg-chips-l">Ver mes:</span>';
-    for(const m of mesesDisponibles){
-      logradoHtml += `<button type="button" class="lg-chip${_sel.includes(m)?' on':''}" data-m="${m}" onclick="toggleMesLogrado('${id}','${m}')">${(mesLabels[m]||m)}${m===_mUlt?' (actual)':''}</button>`;
-    }
-    logradoHtml += `<button type="button" class="lg-chip lg-chip-todos" onclick="toggleMesLogrado('${id}','*')">Todos</button></div>`;
-    logradoHtml += `<div class="logrado-grid" style="grid-template-columns:repeat(${Math.min(3,_sel.length)},minmax(0,1fr))${_sel.length===1?';max-width:680px':''}">`;
+    logradoHtml += `<div class="logrado-grid" style="grid-template-columns:minmax(0,1fr);max-width:680px">`;
     for(const mes of mesesDisponibles){
       if(!logradoData[mes]) continue;
       const lg=logradoData[mes].logrado, pl=logradoData[mes].porLograr;
@@ -3374,7 +3360,7 @@ function renderTab(id, tabData, logradoData) {
       const lgSC       = lgSC1 + lgSC2 + lgSC3;
       const lgCostoTotal = lgHC + lgSC;
 
-      logradoHtml+=`<div class="logrado-mes" data-mes="${mes}"${_sel.includes(mes)?'':' style="display:none"'}><h3 style="font-size:14px;margin:0 0 10px;font-family:'Outfit',sans-serif">${label}</h3>`;
+      logradoHtml+=`<div class="logrado-mes" data-mes="${mes}"${mes===_mUlt?'':' style="display:none"'}><h3 style="font-size:14px;margin:0 0 10px;font-family:'Outfit',sans-serif">${label}</h3>`;
 
       /* ——— 1. INGRESOS (colapsable: absorcion por torre) ——— */
       logradoHtml += `<div style="cursor:pointer" onclick="document.getElementById('det-ing-${uid}').style.display=document.getElementById('det-ing-${uid}').style.display==='none'?'block':'none'">`;
@@ -3728,18 +3714,22 @@ function renderTab(id, tabData, logradoData) {
 }
 
 /* ===== COMPARADOR DE MESES ===== */
-function toggleMesLogrado(id, m){
+function aplicarMesesComparador(id){
   const sec = document.querySelector('.logrado-section[data-lgid="'+id+'"]'); if(!sec) return;
-  const todos = [...sec.querySelectorAll('.lg-chip[data-m]')].map(b=>b.dataset.m);
-  window._mesSel = window._mesSel || {};
-  let sel = _mesSel[id] || [];
-  if(m==='*') sel = sel.length===todos.length ? [todos[todos.length-1]] : todos.slice();
-  else { sel = sel.includes(m) ? sel.filter(x=>x!==m) : sel.concat(m); if(!sel.length) sel=[todos[todos.length-1]]; }
-  _mesSel[id] = sel;
-  sec.querySelectorAll('.lg-chip[data-m]').forEach(b=>b.classList.toggle('on', sel.includes(b.dataset.m)));
-  sec.querySelectorAll('.logrado-mes').forEach(c=>{ c.style.display = sel.includes(c.dataset.mes) ? '' : 'none'; });
+  const sel = document.getElementById('comp-sel-'+id);
+  const cards = [...sec.querySelectorAll('.logrado-mes')];
+  const meses = cards.map(c=>c.dataset.mes);
+  const actual = meses[meses.length-1];
+  let visibles = [actual];
+  if(sel && sel.value!==''){
+    const lbl = (sel.options[sel.selectedIndex].text||'').trim().toLowerCase();
+    const m3 = lbl.slice(0,3);
+    const yr = (lbl.match(/20[0-9][0-9]/)||[''])[0];
+    if(meses.includes(m3) && (yr==='' || yr==='2026')) visibles = [m3, actual];
+  }
+  cards.forEach(c=>{ c.style.display = visibles.includes(c.dataset.mes) ? '' : 'none'; });
   const g = sec.querySelector('.logrado-grid');
-  if(g){ g.style.gridTemplateColumns = 'repeat('+Math.min(3,sel.length)+',minmax(0,1fr))'; g.style.maxWidth = sel.length===1 ? '680px' : ''; }
+  if(g){ g.style.gridTemplateColumns = 'repeat('+visibles.length+',minmax(0,1fr))'; g.style.maxWidth = visibles.length===1 ? '680px' : ''; }
 }
 function renderComparador(tabId){
   const sel = document.getElementById('comp-sel-'+tabId);
